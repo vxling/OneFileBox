@@ -1,0 +1,410 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:OneFileBox.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:converters="using:OneFileBox.Converters"
+        mc:Ignorable="d" d:DesignWidth="960" d:DesignHeight="640"
+        x:Class="OneFileBox.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Icon="/Assets/avalonia-logo.ico"
+        Title="OneFileBox"
+        Width="960" Height="640"
+        MinWidth="700" MinHeight="500">
+
+    <Window.Resources>
+        <converters:IntToBoolConverter x:Key="IntToBoolConverter"/>
+    </Window.Resources>
+
+    <Window.Styles>
+        <Style Selector="RadioButton.NavButton">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+        </Style>
+        <Style Selector="RadioButton.NavButton:pointerover">
+            <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundBaseMediumBrush}"/>
+        </Style>
+        <Style Selector="RadioButton.NavButton:checked">
+            <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundBaseMediumLowBrush}"/>
+        </Style>
+        <Style Selector="Button.PinButton">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="12,8"/>
+        </Style>
+        <Style Selector="Button.PinButton:pointerover">
+            <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundBaseMediumBrush}"/>
+        </Style>
+        <Style Selector="Button.ToolbarButton">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding" Value="10,6"/>
+            <Setter Property="FontSize" Value="13"/>
+        </Style>
+        <Style Selector="Button.ToolbarButton:pointerover">
+            <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundBaseMediumBrush}"/>
+        </Style>
+    </Window.Styles>
+
+    <Design.DataContext>
+        <vm:MainWindowViewModel/>
+    </Design.DataContext>
+
+    <Grid RowDefinitions="Auto,*,Auto">
+        <!-- ====== 顶部工具栏 ====== -->
+        <Border Grid.Row="0"
+                Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
+                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                BorderThickness="0,0,0,0.5"
+                Padding="12,8">
+            <Grid ColumnDefinitions="*,Auto">
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
+                    <TextBlock Text="OneFileBox" FontWeight="SemiBold" FontSize="14"
+                               VerticalAlignment="Center" Margin="4,0,16,0"/>
+                    <Button Classes="ToolbarButton" x:Name="SyncBtn"
+                            Command="{Binding HomeVm.SyncNowCommand}"
+                            IsEnabled="{Binding !HomeVm.IsSyncing}">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <TextBlock Text="🔄" FontSize="13" VerticalAlignment="Center"/>
+                            <TextBlock Text="立即同步" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Classes="ToolbarButton" x:Name="OpenWorkingCopyBtn">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <TextBlock Text="📁" FontSize="13" VerticalAlignment="Center"/>
+                            <TextBlock Text="打开工作副本" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4">
+                    <TextBox Width="200" PlaceholderText="搜索文件..."
+                             Text="{Binding HomeVm.SearchText}"
+                             VerticalContentAlignment="Center" Padding="8,4"/>
+                    <Button Classes="ToolbarButton" x:Name="SettingsBtn" ToolTip.Tip="设置">
+                        <TextBlock Text="⚙" FontSize="15"/>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ====== 主内容区 ====== -->
+        <Grid Grid.Row="1" ColumnDefinitions="Auto,*">
+            <!-- 左侧导航栏 -->
+            <Border Grid.Column="0" x:Name="NavBorder"
+                    Width="{Binding NavWidth}"
+                    Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
+                    BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                    BorderThickness="0,0,0.5,0">
+                <Grid RowDefinitions="Auto,*,Auto">
+                    <Border Grid.Row="0" Padding="12,10,12,8">
+                        <TextBlock Text="OneFileBox" FontWeight="SemiBold" FontSize="13"
+                                   Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                   IsVisible="{Binding IsExpanded}"/>
+                    </Border>
+
+                    <StackPanel Grid.Row="1" Spacing="2" Margin="6,4,6,0">
+                        <!-- 首页 -->
+                        <RadioButton GroupName="MainNav" Classes="NavButton"
+                                     IsChecked="{Binding NavSelectedIndex, Converter={StaticResource IntToBoolConverter}, ConverterParameter=1}"
+                                     ToolTip.Tip="首页">
+                            <Panel>
+                                <StackPanel Orientation="Horizontal" Spacing="10" Margin="10,8"
+                                            IsVisible="{Binding IsExpanded}">
+                                    <TextBlock Text="🏠" FontSize="16" VerticalAlignment="Center"/>
+                                    <TextBlock Text="首页" FontSize="13" VerticalAlignment="Center"/>
+                                </StackPanel>
+                                <TextBlock Text="🏠" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,8"
+                                           IsVisible="{Binding !IsExpanded}"/>
+                            </Panel>
+                        </RadioButton>
+
+                        <TextBlock Text="同步状态" FontSize="11" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                   Margin="14,12,14,4" IsVisible="{Binding IsExpanded}"/>
+
+                        <!-- 同步中 -->
+                        <RadioButton GroupName="MainNav" Classes="NavButton"
+                                     IsChecked="{Binding NavSelectedIndex, Converter={StaticResource IntToBoolConverter}, ConverterParameter=2}"
+                                     ToolTip.Tip="同步中">
+                            <Panel>
+                                <StackPanel Orientation="Horizontal" Spacing="10" Margin="10,8"
+                                            IsVisible="{Binding IsExpanded}">
+                                    <TextBlock Text="↻" FontSize="16" VerticalAlignment="Center" Foreground="#3B82F6"/>
+                                    <TextBlock Text="同步中" FontSize="13" VerticalAlignment="Center"/>
+                                </StackPanel>
+                                <TextBlock Text="↻" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,8"
+                                           IsVisible="{Binding !IsExpanded}" Foreground="#3B82F6"/>
+                            </Panel>
+                        </RadioButton>
+
+                        <!-- 已修改 -->
+                        <RadioButton GroupName="MainNav" Classes="NavButton"
+                                     IsChecked="{Binding NavSelectedIndex, Converter={StaticResource IntToBoolConverter}, ConverterParameter=3}"
+                                     ToolTip.Tip="已修改">
+                            <Panel>
+                                <StackPanel Orientation="Horizontal" Spacing="10" Margin="10,8"
+                                            IsVisible="{Binding IsExpanded}">
+                                    <TextBlock Text="✏" FontSize="16" VerticalAlignment="Center" Foreground="#F59E0B"/>
+                                    <TextBlock Text="已修改" FontSize="13" VerticalAlignment="Center"/>
+                                </StackPanel>
+                                <TextBlock Text="✏" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,8"
+                                           IsVisible="{Binding !IsExpanded}" Foreground="#F59E0B"/>
+                            </Panel>
+                        </RadioButton>
+
+                        <!-- 冲突 -->
+                        <RadioButton GroupName="MainNav" Classes="NavButton"
+                                     IsChecked="{Binding NavSelectedIndex, Converter={StaticResource IntToBoolConverter}, ConverterParameter=4}"
+                                     ToolTip.Tip="冲突">
+                            <Panel>
+                                <StackPanel Orientation="Horizontal" Spacing="10" Margin="10,8"
+                                            IsVisible="{Binding IsExpanded}">
+                                    <TextBlock Text="⚠" FontSize="16" VerticalAlignment="Center" Foreground="#EF4444"/>
+                                    <TextBlock Text="冲突" FontSize="13" VerticalAlignment="Center"/>
+                                </StackPanel>
+                                <TextBlock Text="⚠" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,8"
+                                           IsVisible="{Binding !IsExpanded}" Foreground="#EF4444"/>
+                            </Panel>
+                        </RadioButton>
+
+                        <Border Height="1" Background="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                Opacity="0.2" Margin="10,8" IsVisible="{Binding IsExpanded}"/>
+
+                        <!-- 仓库列表 -->
+                        <RadioButton GroupName="MainNav" Classes="NavButton"
+                                     IsChecked="{Binding NavSelectedIndex, Converter={StaticResource IntToBoolConverter}, ConverterParameter=5}"
+                                     ToolTip.Tip="仓库列表">
+                            <Panel>
+                                <StackPanel Orientation="Horizontal" Spacing="10" Margin="10,8"
+                                            IsVisible="{Binding IsExpanded}">
+                                    <TextBlock Text="📂" FontSize="16" VerticalAlignment="Center"/>
+                                    <TextBlock Text="仓库列表" FontSize="13" VerticalAlignment="Center"/>
+                                </StackPanel>
+                                <TextBlock Text="📂" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,8"
+                                           IsVisible="{Binding !IsExpanded}"/>
+                            </Panel>
+                        </RadioButton>
+                    </StackPanel>
+
+                    <Button Grid.Row="2" Classes="PinButton"
+                            Click="PinButton_Click"
+                            Margin="0,0,0,8"
+                            HorizontalAlignment="Center"
+                            ToolTip.Tip="{Binding PinTooltip}">
+                        <TextBlock Text="{Binding PinIcon}" FontSize="15"/>
+                    </Button>
+                </Grid>
+            </Border>
+
+            <!-- 右侧内容 -->
+            <Border Grid.Column="1" Background="{DynamicResource SystemControlBackgroundBaseBrush}">
+                <Panel>
+                    <!-- ====== 首页 (1) ====== -->
+                    <Grid IsVisible="{Binding NavSelectedIndex, Converter={StaticResource IntToBoolConverter}, ConverterParameter=1}"
+                          RowDefinitions="Auto,*">
+                        <Border Grid.Row="0" Padding="16,10"
+                                Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
+                                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                BorderThickness="0,0,0,0.5">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <TextBlock Text="📁" FontSize="13" VerticalAlignment="Center"/>
+                                <TextBlock Text="/" FontSize="13" Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+                        <ScrollViewer Grid.Row="1">
+                            <ItemsControl ItemsSource="{Binding HomeVm.Files}" Margin="8,4">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:FileItemViewModel">
+                                        <Border Padding="8,6" Margin="4,1" CornerRadius="4"
+                                                Background="Transparent">
+                                            <Border.Styles>
+                                                <Style Selector="Border:pointerover">
+                                                    <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundBaseMediumLowBrush}"/>
+                                                </Style>
+                                            </Border.Styles>
+                                            <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto">
+                                                <CheckBox Grid.Column="0" IsChecked="{Binding IsSelected}"
+                                                          VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                                <TextBlock Grid.Column="1" Text="{Binding FileIcon}" FontSize="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                                <TextBlock Grid.Column="2" Text="{Binding Name}" FontSize="13"
+                                                           VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                                <TextBlock Grid.Column="3" Text="{Binding StateIcon}" FontSize="12"
+                                                           VerticalAlignment="Center" Margin="8,0"
+                                                           Foreground="{Binding StateColor}"/>
+                                                <TextBlock Grid.Column="4" Text="{Binding LastSyncTime}" FontSize="12"
+                                                           Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                                           VerticalAlignment="Center" MinWidth="80" TextAlignment="Right"/>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </Grid>
+
+                    <!-- ====== 同步中 (2) ====== -->
+                    <Grid IsVisible="{Binding NavSelectedIndex, Converter={StaticResource IntToBoolConverter}, ConverterParameter=2}"
+                          RowDefinitions="Auto,*">
+                        <Border Grid.Row="0" Padding="16,10"
+                                Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
+                                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                BorderThickness="0,0,0,0.5">
+                            <TextBlock Text="同步中" FontWeight="SemiBold" FontSize="14"/>
+                        </Border>
+                        <ScrollViewer Grid.Row="1">
+                            <ItemsControl ItemsSource="{Binding HomeVm.Files}" Margin="8,4">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:FileItemViewModel">
+                                        <Border Padding="8,6" Margin="4,1" CornerRadius="4">
+                                            <Grid ColumnDefinitions="Auto,*,Auto" Margin="4,8">
+                                                <TextBlock Grid.Column="0" Text="↻" FontSize="16" Foreground="#3B82F6"
+                                                           VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                                <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="13"
+                                                           VerticalAlignment="Center"/>
+                                                <ProgressBar Grid.Column="2" Minimum="0" Maximum="100" Value="50"
+                                                             Width="120" Height="4" VerticalAlignment="Center"/>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </Grid>
+
+                    <!-- ====== 已修改 (3) ====== -->
+                    <Grid IsVisible="{Binding NavSelectedIndex, Converter={StaticResource IntToBoolConverter}, ConverterParameter=3}">
+                        <Border Padding="16,10"
+                                Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
+                                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                BorderThickness="0,0,0,0.5">
+                            <TextBlock Text="已修改" FontWeight="SemiBold" FontSize="14"/>
+                        </Border>
+                    </Grid>
+
+                    <!-- ====== 冲突 (4) ====== -->
+                    <Grid IsVisible="{Binding NavSelectedIndex, Converter={StaticResource IntToBoolConverter}, ConverterParameter=4}">
+                        <Border Padding="16,10"
+                                Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
+                                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                BorderThickness="0,0,0,0.5">
+                            <TextBlock Text="冲突" FontWeight="SemiBold" FontSize="14"/>
+                        </Border>
+                    </Grid>
+
+                    <!-- ====== 仓库列表 (5) ====== -->
+                    <Grid IsVisible="{Binding NavSelectedIndex, Converter={StaticResource IntToBoolConverter}, ConverterParameter=5}"
+                          RowDefinitions="Auto,*">
+                        <Border Grid.Row="0" Padding="16,10"
+                                Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
+                                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                BorderThickness="0,0,0,0.5">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <TextBlock Grid.Column="0" Text="仓库列表" FontWeight="SemiBold" FontSize="14"/>
+                                <Button Grid.Column="1" Classes="ToolbarButton" x:Name="AddRepoBtn"
+                                        Content="+ 添加仓库"/>
+                            </Grid>
+                        </Border>
+                        <ScrollViewer Grid.Row="1">
+                            <ItemsControl ItemsSource="{Binding RepositoriesVm.Repositories}" Margin="8,4">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:RepositoryItemViewModel">
+                                        <Border Padding="12,10" Margin="4,4" CornerRadius="6"
+                                                Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}">
+                                            <Grid ColumnDefinitions="Auto,*,Auto">
+                                                <TextBlock Grid.Column="0" Text="📂" FontSize="28"
+                                                           VerticalAlignment="Center" Margin="0,0,14,0"/>
+                                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="13"/>
+                                                    <TextBlock Text="{Binding LocalPath}" FontSize="11"
+                                                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                                                </StackPanel>
+                                                <TextBlock Grid.Column="2" Text="●" FontSize="14"
+                                                           VerticalAlignment="Center" Foreground="#22C55E"
+                                                           IsVisible="{Binding IsConnected}"/>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </Grid>
+
+                    <!-- ====== 设置 (0) ====== -->
+                    <Grid IsVisible="{Binding NavSelectedIndex, Converter={StaticResource IntToBoolConverter}, ConverterParameter=0}"
+                          RowDefinitions="Auto,*">
+                        <Border Grid.Row="0" Padding="16,10"
+                                Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
+                                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                BorderThickness="0,0,0,0.5">
+                            <TextBlock Text="设置" FontWeight="SemiBold" FontSize="14"/>
+                        </Border>
+                        <ScrollViewer Grid.Row="1" Margin="20,16">
+                            <StackPanel Spacing="24" MaxWidth="560">
+                                <StackPanel Spacing="12">
+                                    <TextBlock Text="常规" FontWeight="SemiBold" FontSize="13"
+                                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                                    <CheckBox Content="开机自动启动" IsChecked="{Binding SettingsVm.StartOnBoot}"/>
+                                    <CheckBox Content="关闭时最小化到系统托盘" IsChecked="{Binding SettingsVm.MinimizeToTray}"/>
+                                    <CheckBox Content="显示桌面通知" IsChecked="{Binding SettingsVm.ShowNotifications}"/>
+                                </StackPanel>
+                                <StackPanel Spacing="12">
+                                    <TextBlock Text="同步" FontWeight="SemiBold" FontSize="13"
+                                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <TextBlock Text="同步间隔：" VerticalAlignment="Center" Width="80"/>
+                                        <ComboBox SelectedIndex="1" Width="150">
+                                            <ComboBoxItem Content="每分钟"/>
+                                            <ComboBoxItem Content="每5分钟"/>
+                                            <ComboBoxItem Content="每15分钟"/>
+                                            <ComboBoxItem Content="每30分钟"/>
+                                        </ComboBox>
+                                    </StackPanel>
+                                    <CheckBox Content="显示隐藏文件" IsChecked="{Binding SettingsVm.ShowHiddenFiles}"/>
+                                    <CheckBox Content="提交前显示确认对话框" IsChecked="{Binding SettingsVm.ConfirmBeforeCommit}"/>
+                                </StackPanel>
+                                <StackPanel Spacing="12">
+                                    <TextBlock Text="网络" FontWeight="SemiBold" FontSize="13"
+                                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <TextBlock Text="代理服务器：" VerticalAlignment="Center" Width="80"/>
+                                        <TextBox Width="200" Text="{Binding SettingsVm.ProxyUrl}"
+                                                 PlaceholderText="http://proxy.example.com"/>
+                                        <TextBox Width="80" Text="{Binding SettingsVm.ProxyPort}"
+                                                 PlaceholderText="端口"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Grid>
+                </Panel>
+            </Border>
+        </Grid>
+
+        <!-- ====== 状态栏 ====== -->
+        <Border Grid.Row="2"
+                Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
+                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                BorderThickness="0,0.5,0,0"
+                Padding="12,6">
+            <Grid ColumnDefinitions="*,Auto,Auto,Auto">
+                <TextBlock Grid.Column="0" Text="{Binding HomeVm.ConnectionStatus}" FontSize="12"
+                           Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                           VerticalAlignment="Center"/>
+                <TextBlock Grid.Column="1" Text="{Binding HomeVm.SyncProgress}" FontSize="12"
+                           Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                           VerticalAlignment="Center" Margin="0,0,16,0"/>
+                <TextBlock Grid.Column="2" Text="↻" FontSize="14" VerticalAlignment="Center" Margin="0,0,16,0"
+                           IsVisible="{Binding HomeVm.IsSyncing}" Foreground="#3B82F6"/>
+                <TextBlock Grid.Column="3" FontSize="12"
+                           Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                           VerticalAlignment="Center">
+                    <Run Text="上次同步: "/>
+                    <Run Text="{Binding HomeVm.LastSyncTime, Mode=OneWay}"/>
+                </TextBlock>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

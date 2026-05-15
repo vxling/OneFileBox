@@ -1,62 +1,59 @@
+using System;
+using System.IO;
+using CommunityToolkit.Mvvm.ComponentModel;
+
 namespace OneFileBox.Models;
 
-using System;
-
-/// <summary>
-/// SVN 工作副本中的文件/目录项
-/// </summary>
-public class FileItem
+public partial class FileItem : ObservableObject
 {
-    /// <summary>相对工作副本根目录的路径</summary>
-    public string RelativePath { get; set; } = string.Empty;
+    [ObservableProperty]
+    private string _name = "";
 
-    /// <summary>完整本地路径</summary>
-    public string FullPath { get; set; } = string.Empty;
+    [ObservableProperty]
+    private string _fullPath = "";
 
-    /// <summary>是否为目录</summary>
-    public bool IsDirectory { get; set; }
+    [ObservableProperty]
+    private bool _isDirectory;
 
-    /// <summary>SVN 状态</summary>
-    public SvnStatus Status { get; set; } = SvnStatus.None;
+    [ObservableProperty]
+    private long _fileSize;
 
-    /// <summary>本地最后修改时间</summary>
-    public DateTime LocalModified { get; set; }
+    [ObservableProperty]
+    private DateTime _lastModified;
 
-    /// <summary>SVN 版本号（如果是版本化文件）</summary>
-    public long Revision { get; set; }
+    [ObservableProperty]
+    private FileSvnStatus _svnStatus = FileSvnStatus.Normal;
 
-    /// <summary>最后提交作者</summary>
-    public string? Author { get; set; }
+    public string FileSizeDisplay => IsDirectory ? "" : FormatFileSize(FileSize);
 
-    /// <summary>最后提交时间</summary>
-    public DateTime? CommittedDate;
+    public string LastModifiedDisplay => LastModified == DateTime.MinValue ? "" : LastModified.ToString("yyyy-MM-dd HH:mm");
 
-    /// <summary>文件大小（字节）</summary>
-    public long Size { get; set; }
+    public string TypeDisplay => Name == "返回上级目录" ? "↗" : (IsDirectory ? "📁" : GetFileIcon(Name));
 
-    /// <summary>URL（从 SVN 列表获取）</summary>
-    public string? Url { get; set; }
+    private static string GetFileIcon(string fileName)
+    {
+        var ext = Path.GetExtension(fileName).ToLowerInvariant();
+        return ext switch
+        {
+            ".cs" => "💻",
+            ".xlsx" or ".xls" => "📊",
+            ".docx" or ".doc" => "📝",
+            ".pptx" or ".ppt" => "📽️",
+            ".pdf" => "📕",
+            ".txt" => "📄",
+            ".jpg" or ".jpeg" or ".png" or ".gif" or ".bmp" => "🖼️",
+            ".zip" or ".rar" or ".7z" => "📦",
+            ".json" or ".xml" or ".yaml" or ".yml" => "📋",
+            ".html" or ".css" or ".js" => "🌐",
+            _ => "📄"
+        };
+    }
 
-    /// <summary>锁信息</summary>
-    public string? LockOwner { get; set; }
-    public DateTime? LockDate;
-    public bool IsLocked => !string.IsNullOrEmpty(LockOwner);
-}
-
-/// <summary>
-/// SVN 文件状态枚举
-/// </summary>
-public enum SvnStatus
-{
-    None,
-    Normal,
-    Modified,
-    Added,
-    Deleted,
-    Unversioned,
-    Conflicted,
-    Ignored,
-    External,
-    Incomplete,
-    Merged,
+    private static string FormatFileSize(long bytes)
+    {
+        if (bytes < 1024) return $"{bytes} B";
+        if (bytes < 1024 * 1024) return $"{bytes / 1024.0:F1} KB";
+        if (bytes < 1024 * 1024 * 1024) return $"{bytes / (1024.0 * 1024):F1} MB";
+        return $"{bytes / (1024.0 * 1024 * 1024):F1} GB";
+    }
 }

@@ -25,7 +25,7 @@ public partial class App : Application
             };
             desktop.MainWindow = mainWindow;
 
-            // 设置托盘图标
+            // Setup system tray icon (Windows only for system-level balloon tips)
             SetupTrayIcon(desktop, mainWindow);
 
             // Avalonia 12: DevTools via DiagnosticsSupport
@@ -37,7 +37,7 @@ public partial class App : Application
 
     private void SetupTrayIcon(IClassicDesktopStyleApplicationLifetime desktop, MainWindow mainWindow)
     {
-        // 创建托盘图标菜单
+        // Build tray menu
         var showWindowItem = new NativeMenuItem("显示窗口");
         showWindowItem.Click += (s, e) =>
         {
@@ -50,7 +50,7 @@ public partial class App : Application
         var quitItem = new NativeMenuItem("退出");
         quitItem.Click += (s, e) =>
         {
-            // 真正退出：先显示窗口再关闭，让 Closing 事件正常处理
+            // Show window before shutdown to allow Closing event to process normally
             mainWindow.Show();
             desktop.TryShutdown();
         };
@@ -60,7 +60,8 @@ public partial class App : Application
         menu.Add(separator);
         menu.Add(quitItem);
 
-        // 创建托盘图标
+        // Create single TrayIcon using Avalonia 12 TrayIcons API (plural SetIcons)
+        // Note: TrayIcon tooltips are platform-dependent; balloon tips only work on Windows
         var trayIcon = new TrayIcon
         {
             ToolTipText = "OneFileBox",
@@ -68,7 +69,7 @@ public partial class App : Application
             IsVisible = true,
         };
 
-        // 点击托盘图标也显示窗口（macOS 不触发，但 Win/Linux 可以）
+        // Click tray icon to show window (works on Win/Linux; macOS may vary)
         trayIcon.Clicked += (s, e) =>
         {
             mainWindow.Show();
@@ -76,17 +77,17 @@ public partial class App : Application
             mainWindow.Activate();
         };
 
-        // 窗口关闭时隐藏到托盘，而不是退出
+        // When window closes, hide to tray instead of exiting
         mainWindow.Closing += (s, e) =>
         {
             if (e.CloseReason == WindowCloseReason.WindowClosing)
             {
-                e.Cancel = true; // 阻止关闭
-                mainWindow.Hide(); // 隐藏到托盘
+                e.Cancel = true;  // Prevent actual close
+                mainWindow.Hide(); // Minimize to tray
             }
         };
 
-        // 设置托盘图标到 Application
+        // Set tray icon on the app using Avalonia 12 plural SetIcons API
         TrayIcon.SetIcons(this, new TrayIcons { trayIcon });
     }
 }

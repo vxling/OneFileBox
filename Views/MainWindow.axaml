@@ -4,19 +4,20 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:converters="using:OneFileBox.Converters"
-        mc:Ignorable="d" d:DesignWidth="960" d:DesignHeight="640"
+        mc:Ignorable="d" d:DesignWidth="1100" d:DesignHeight="640"
         x:Class="OneFileBox.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Icon="/Assets/avalonia-logo.ico"
         Title="OneFileBox"
-        Width="960" Height="640"
-        MinWidth="700" MinHeight="500">
+        Width="1100" Height="640"
+        MinWidth="800" MinHeight="550">
 
     <Window.Resources>
         <converters:IntToBoolConverter x:Key="IntToBoolConverter"/>
     </Window.Resources>
 
     <Window.Styles>
+        <!-- Navigation RadioButton style -->
         <Style Selector="RadioButton.NavButton">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="CornerRadius" Value="8"/>
@@ -30,6 +31,8 @@
         <Style Selector="RadioButton.NavButton:checked">
             <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundBaseMediumLowBrush}"/>
         </Style>
+
+        <!-- Pin button style -->
         <Style Selector="Button.PinButton">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="CornerRadius" Value="8"/>
@@ -38,6 +41,8 @@
         <Style Selector="Button.PinButton:pointerover">
             <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundBaseMediumBrush}"/>
         </Style>
+
+        <!-- Toolbar button style -->
         <Style Selector="Button.ToolbarButton">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="CornerRadius" Value="6"/>
@@ -53,11 +58,12 @@
         <vm:MainWindowViewModel/>
     </Design.DataContext>
 
+    <!-- Main layout: top toolbar + content + status bar -->
     <Grid RowDefinitions="Auto,*,Auto">
-        <!-- ====== 顶部工具栏 ====== -->
+        <!-- ====== Top Toolbar ====== -->
         <Border Grid.Row="0"
                 Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
-                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
                 BorderThickness="0,0,0,0.5"
                 Padding="12,8">
             <Grid ColumnDefinitions="*,Auto">
@@ -78,6 +84,9 @@
                             <TextBlock Text="打开工作副本" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
+                    <Button Classes="ToolbarButton" x:Name="RefreshBtn" ToolTip.Tip="刷新">
+                        <TextBlock Text="🔃" FontSize="14"/>
+                    </Button>
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4">
                     <TextBox Width="200" PlaceholderText="搜索文件..."
@@ -90,23 +99,27 @@
             </Grid>
         </Border>
 
-        <!-- ====== 主内容区 ====== -->
+        <!-- ====== Main Content: Left Nav + Right Panel ====== -->
         <Grid Grid.Row="1" ColumnDefinitions="Auto,*">
-            <!-- 左侧导航栏 -->
+            <!-- Left Navigation Panel with Acrylic blur -->
             <Border Grid.Column="0" x:Name="NavBorder"
                     Width="{Binding NavWidth}"
-                    Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
-                    BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                    BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
                     BorderThickness="0,0,0.5,0">
+                <Border.Background>
+                    <SolidColorBrush Color="#F3F3F3" Opacity="0.95"/>
+                </Border.Background>
                 <Grid RowDefinitions="Auto,*,Auto">
+                    <!-- Nav header -->
                     <Border Grid.Row="0" Padding="12,10,12,8">
                         <TextBlock Text="OneFileBox" FontWeight="SemiBold" FontSize="13"
                                    Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
                                    IsVisible="{Binding IsExpanded}"/>
                     </Border>
 
+                    <!-- Nav items -->
                     <StackPanel Grid.Row="1" Spacing="2" Margin="6,4,6,0">
-                        <!-- 首页 -->
+                        <!-- Home - index 1 -->
                         <RadioButton GroupName="MainNav" Classes="NavButton"
                                      IsChecked="{Binding NavSelectedIndex, Converter={StaticResource IntToBoolConverter}, ConverterParameter=1}"
                                      ToolTip.Tip="首页">
@@ -125,7 +138,7 @@
                                    Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
                                    Margin="14,12,14,4" IsVisible="{Binding IsExpanded}"/>
 
-                        <!-- 同步中 -->
+                        <!-- Syncing - index 2 -->
                         <RadioButton GroupName="MainNav" Classes="NavButton"
                                      IsChecked="{Binding NavSelectedIndex, Converter={StaticResource IntToBoolConverter}, ConverterParameter=2}"
                                      ToolTip.Tip="同步中">
@@ -140,7 +153,7 @@
                             </Panel>
                         </RadioButton>
 
-                        <!-- 已修改 -->
+                        <!-- Modified - index 3 -->
                         <RadioButton GroupName="MainNav" Classes="NavButton"
                                      IsChecked="{Binding NavSelectedIndex, Converter={StaticResource IntToBoolConverter}, ConverterParameter=3}"
                                      ToolTip.Tip="已修改">
@@ -155,7 +168,7 @@
                             </Panel>
                         </RadioButton>
 
-                        <!-- 冲突 -->
+                        <!-- Conflict - index 4 -->
                         <RadioButton GroupName="MainNav" Classes="NavButton"
                                      IsChecked="{Binding NavSelectedIndex, Converter={StaticResource IntToBoolConverter}, ConverterParameter=4}"
                                      ToolTip.Tip="冲突">
@@ -173,7 +186,7 @@
                         <Border Height="1" Background="{DynamicResource SystemControlForegroundBaseMediumBrush}"
                                 Opacity="0.2" Margin="10,8" IsVisible="{Binding IsExpanded}"/>
 
-                        <!-- 仓库列表 -->
+                        <!-- Repository list - index 5 -->
                         <RadioButton GroupName="MainNav" Classes="NavButton"
                                      IsChecked="{Binding NavSelectedIndex, Converter={StaticResource IntToBoolConverter}, ConverterParameter=5}"
                                      ToolTip.Tip="仓库列表">
@@ -189,6 +202,7 @@
                         </RadioButton>
                     </StackPanel>
 
+                    <!-- Pin button at bottom -->
                     <Button Grid.Row="2" Classes="PinButton"
                             Click="PinButton_Click"
                             Margin="0,0,0,8"
@@ -199,19 +213,75 @@
                 </Grid>
             </Border>
 
-            <!-- 右侧内容 -->
+            <!-- ====== Right Content Area ====== -->
             <Border Grid.Column="1" Background="{DynamicResource SystemControlBackgroundBaseBrush}">
                 <Panel>
-                    <!-- ====== 首页 (1) ====== -->
+                    <!-- ====== Home Page (index 1) - File List with ListBox ====== -->
                     <Grid IsVisible="{Binding NavSelectedIndex, Converter={StaticResource IntToBoolConverter}, ConverterParameter=1}"
                           RowDefinitions="Auto,*">
+                        <!-- Breadcrumb/path bar -->
                         <Border Grid.Row="0" Padding="16,10"
                                 Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
-                                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
                                 BorderThickness="0,0,0,0.5">
                             <StackPanel Orientation="Horizontal" Spacing="6">
                                 <TextBlock Text="📁" FontSize="13" VerticalAlignment="Center"/>
                                 <TextBlock Text="/" FontSize="13" Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- File ListBox with column headers -->
+                        <Grid Grid.Row="1" RowDefinitions="Auto,*">
+                            <!-- Column header row -->
+                            <Border Grid.Row="0" Padding="16,8" Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
+                                    BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                                    BorderThickness="0,0,0,0.5">
+                                <Grid ColumnDefinitions="30,2*,60,120">
+                                    <TextBlock Grid.Column="0"/>
+                                    <TextBlock Grid.Column="1" Text="名称" FontWeight="SemiBold" FontSize="12"/>
+                                    <TextBlock Grid.Column="2" Text="状态" FontWeight="SemiBold" FontSize="12" HorizontalAlignment="Center"/>
+                                    <TextBlock Grid.Column="3" Text="同步时间" FontWeight="SemiBold" FontSize="12"/>
+                                </Grid>
+                            </Border>
+
+                            <!-- File list -->
+                            <ListBox Grid.Row="1" x:Name="FileListBox"
+                                     ItemsSource="{Binding HomeVm.Files}"
+                                     SelectedItem="{Binding HomeVm.SelectedFile}"
+                                     DoubleTapped="FileListBox_DoubleTapped">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:FileItemViewModel">
+                                        <Grid ColumnDefinitions="30,2*,60,120" Margin="0,2">
+                                            <CheckBox Grid.Column="0" IsChecked="{Binding IsSelected}"
+                                                      VerticalAlignment="Center"/>
+                                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding FileIcon}" FontSize="16" VerticalAlignment="Center"/>
+                                                <TextBlock Text="{Binding Name}" FontSize="13" VerticalAlignment="Center"
+                                                           TextTrimming="CharacterEllipsis"/>
+                                            </StackPanel>
+                                            <TextBlock Grid.Column="2" Text="{Binding StateIcon}" FontSize="12"
+                                                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                       Foreground="{Binding StateColor}"/>
+                                            <TextBlock Grid.Column="3" Text="{Binding LastSyncTime}" FontSize="12"
+                                                       Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                                       VerticalAlignment="Center"/>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </Grid>
+                    </Grid>
+
+                    <!-- ====== Syncing Page (index 2) ====== -->
+                    <Grid IsVisible="{Binding NavSelectedIndex, Converter={StaticResource IntToBoolConverter}, ConverterParameter=2}"
+                          RowDefinitions="Auto,*">
+                        <Border Grid.Row="0" Padding="16,10"
+                                Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
+                                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                                BorderThickness="0,0,0,0.5">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <TextBlock Text="↻" FontSize="14" Foreground="#3B82F6" VerticalAlignment="Center"/>
+                                <TextBlock Text="同步中" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Border>
                         <ScrollViewer Grid.Row="1">
@@ -219,46 +289,12 @@
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate x:DataType="vm:FileItemViewModel">
                                         <Border Padding="8,6" Margin="4,1" CornerRadius="4"
-                                                Background="Transparent">
+                                                Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}">
                                             <Border.Styles>
                                                 <Style Selector="Border:pointerover">
                                                     <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundBaseMediumLowBrush}"/>
                                                 </Style>
                                             </Border.Styles>
-                                            <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto">
-                                                <CheckBox Grid.Column="0" IsChecked="{Binding IsSelected}"
-                                                          VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                                <TextBlock Grid.Column="1" Text="{Binding FileIcon}" FontSize="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                                <TextBlock Grid.Column="2" Text="{Binding Name}" FontSize="13"
-                                                           VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
-                                                <TextBlock Grid.Column="3" Text="{Binding StateIcon}" FontSize="12"
-                                                           VerticalAlignment="Center" Margin="8,0"
-                                                           Foreground="{Binding StateColor}"/>
-                                                <TextBlock Grid.Column="4" Text="{Binding LastSyncTime}" FontSize="12"
-                                                           Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
-                                                           VerticalAlignment="Center" MinWidth="80" TextAlignment="Right"/>
-                                            </Grid>
-                                        </Border>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </ScrollViewer>
-                    </Grid>
-
-                    <!-- ====== 同步中 (2) ====== -->
-                    <Grid IsVisible="{Binding NavSelectedIndex, Converter={StaticResource IntToBoolConverter}, ConverterParameter=2}"
-                          RowDefinitions="Auto,*">
-                        <Border Grid.Row="0" Padding="16,10"
-                                Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
-                                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
-                                BorderThickness="0,0,0,0.5">
-                            <TextBlock Text="同步中" FontWeight="SemiBold" FontSize="14"/>
-                        </Border>
-                        <ScrollViewer Grid.Row="1">
-                            <ItemsControl ItemsSource="{Binding HomeVm.Files}" Margin="8,4">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate x:DataType="vm:FileItemViewModel">
-                                        <Border Padding="8,6" Margin="4,1" CornerRadius="4">
                                             <Grid ColumnDefinitions="Auto,*,Auto" Margin="4,8">
                                                 <TextBlock Grid.Column="0" Text="↻" FontSize="16" Foreground="#3B82F6"
                                                            VerticalAlignment="Center" Margin="0,0,10,0"/>
@@ -274,37 +310,73 @@
                         </ScrollViewer>
                     </Grid>
 
-                    <!-- ====== 已修改 (3) ====== -->
-                    <Grid IsVisible="{Binding NavSelectedIndex, Converter={StaticResource IntToBoolConverter}, ConverterParameter=3}">
-                        <Border Padding="16,10"
+                    <!-- ====== Modified Page (index 3) ====== -->
+                    <Grid IsVisible="{Binding NavSelectedIndex, Converter={StaticResource IntToBoolConverter}, ConverterParameter=3}"
+                          RowDefinitions="Auto,*">
+                        <Border Grid.Row="0" Padding="16,10"
                                 Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
-                                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
                                 BorderThickness="0,0,0,0.5">
-                            <TextBlock Text="已修改" FontWeight="SemiBold" FontSize="14"/>
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <TextBlock Text="✏" FontSize="14" Foreground="#F59E0B" VerticalAlignment="Center"/>
+                                <TextBlock Text="已修改" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center"/>
+                            </StackPanel>
                         </Border>
+                        <ScrollViewer Grid.Row="1">
+                            <ItemsControl ItemsSource="{Binding HomeVm.Files}" Margin="8,4">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:FileItemViewModel">
+                                        <Border Padding="8,6" Margin="4,1" CornerRadius="4"
+                                                Background="Transparent">
+                                            <Border.Styles>
+                                                <Style Selector="Border:pointerover">
+                                                    <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundBaseMediumLowBrush}"/>
+                                                </Style>
+                                            </Border.Styles>
+                                            <Grid ColumnDefinitions="Auto,*,Auto">
+                                                <TextBlock Grid.Column="0" Text="✏" FontSize="16" Foreground="#F59E0B"
+                                                           VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                                <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="13"
+                                                           VerticalAlignment="Center"/>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
                     </Grid>
 
-                    <!-- ====== 冲突 (4) ====== -->
-                    <Grid IsVisible="{Binding NavSelectedIndex, Converter={StaticResource IntToBoolConverter}, ConverterParameter=4}">
-                        <Border Padding="16,10"
+                    <!-- ====== Conflict Page (index 4) ====== -->
+                    <Grid IsVisible="{Binding NavSelectedIndex, Converter={StaticResource IntToBoolConverter}, ConverterParameter=4}"
+                          RowDefinitions="Auto,*">
+                        <Border Grid.Row="0" Padding="16,10"
                                 Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
-                                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
                                 BorderThickness="0,0,0,0.5">
-                            <TextBlock Text="冲突" FontWeight="SemiBold" FontSize="14"/>
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <TextBlock Text="⚠" FontSize="14" Foreground="#EF4444" VerticalAlignment="Center"/>
+                                <TextBlock Text="冲突" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center"/>
+                            </StackPanel>
                         </Border>
+                        <ScrollViewer Grid.Row="1"/>
                     </Grid>
 
-                    <!-- ====== 仓库列表 (5) ====== -->
+                    <!-- ====== Repository List Page (index 5) ====== -->
                     <Grid IsVisible="{Binding NavSelectedIndex, Converter={StaticResource IntToBoolConverter}, ConverterParameter=5}"
                           RowDefinitions="Auto,*">
                         <Border Grid.Row="0" Padding="16,10"
                                 Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
-                                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
                                 BorderThickness="0,0,0,0.5">
                             <Grid ColumnDefinitions="*,Auto">
                                 <TextBlock Grid.Column="0" Text="仓库列表" FontWeight="SemiBold" FontSize="14"/>
                                 <Button Grid.Column="1" Classes="ToolbarButton" x:Name="AddRepoBtn"
-                                        Content="+ 添加仓库"/>
+                                        Click="AddRepository_Click">
+                                    <StackPanel Orientation="Horizontal" Spacing="4">
+                                        <TextBlock Text="+" FontSize="14" VerticalAlignment="Center"/>
+                                        <TextBlock Text="添加仓库" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
                             </Grid>
                         </Border>
                         <ScrollViewer Grid.Row="1">
@@ -313,6 +385,11 @@
                                     <DataTemplate x:DataType="vm:RepositoryItemViewModel">
                                         <Border Padding="12,10" Margin="4,4" CornerRadius="6"
                                                 Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}">
+                                            <Border.Styles>
+                                                <Style Selector="Border:pointerover">
+                                                    <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundBaseMediumLowBrush}"/>
+                                                </Style>
+                                            </Border.Styles>
                                             <Grid ColumnDefinitions="Auto,*,Auto">
                                                 <TextBlock Grid.Column="0" Text="📂" FontSize="28"
                                                            VerticalAlignment="Center" Margin="0,0,14,0"/>
@@ -332,12 +409,12 @@
                         </ScrollViewer>
                     </Grid>
 
-                    <!-- ====== 设置 (0) ====== -->
+                    <!-- ====== Settings Page (index 0) ====== -->
                     <Grid IsVisible="{Binding NavSelectedIndex, Converter={StaticResource IntToBoolConverter}, ConverterParameter=0}"
                           RowDefinitions="Auto,*">
                         <Border Grid.Row="0" Padding="16,10"
                                 Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
-                                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
                                 BorderThickness="0,0,0,0.5">
                             <TextBlock Text="设置" FontWeight="SemiBold" FontSize="14"/>
                         </Border>
@@ -383,10 +460,10 @@
             </Border>
         </Grid>
 
-        <!-- ====== 状态栏 ====== -->
+        <!-- ====== Bottom Status Bar ====== -->
         <Border Grid.Row="2"
                 Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
-                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
                 BorderThickness="0,0.5,0,0"
                 Padding="12,6">
             <Grid ColumnDefinitions="*,Auto,Auto,Auto">

@@ -8,6 +8,9 @@ public partial class FileItemViewModel : ObservableObject
     private string _name = string.Empty;
 
     [ObservableProperty]
+    private string _fullPath = string.Empty;
+
+    [ObservableProperty]
     private bool _isDirectory;
 
     [ObservableProperty]

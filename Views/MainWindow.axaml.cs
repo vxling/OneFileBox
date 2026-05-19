@@ -14,10 +14,11 @@ public partial class MainWindow : Window
         InitializeComponent();
         AddHandler(DragDrop.DragEnterEvent, OnDragEnter);
         AddHandler(DragDrop.DropEvent, OnDrop);
-
-        // 注入 HostTopLevel，使 ViewModel 能访问 StorageProvider
-        if (DataContext is MainWindowViewModel vm)
-            vm.HostTopLevel = TopLevel.GetTopLevel(this);
+        Opened += (_, _) =>
+        {
+            if (DataContext is MainWindowViewModel vm)
+                vm.HostTopLevel = TopLevel.GetTopLevel(this);
+        };
     }
 
     private void OnDragEnter(object? sender, DragEventArgs e)

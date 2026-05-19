@@ -2,9 +2,9 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using Avalonia.Controls;
 using Avalonia.Controls.Templates;
-using OneFileBox.ViewModels;
+using OneFileBox_new.ViewModels;
 
-namespace OneFileBox;
+namespace OneFileBox_new;
 
 /// <summary>
 /// Given a view model, returns the corresponding view if possible.

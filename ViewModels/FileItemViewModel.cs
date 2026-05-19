@@ -1,60 +1,115 @@
-using CommunityToolkit.Mvvm.ComponentModel;
+using System;
+using OneFileBox_new.Models;
 
-namespace OneFileBox.ViewModels;
+namespace OneFileBox_new.ViewModels;
 
-public partial class FileItemViewModel : ObservableObject
+public class FileItemViewModel : ViewModelBase
 {
-    [ObservableProperty]
     private string _name = string.Empty;
-
-    [ObservableProperty]
-    private string _fullPath = string.Empty;
-
-    [ObservableProperty]
+    private string _typeIcon = "📄";
+    private long _fileSize;
+    private DateTime _lastModified;
     private bool _isDirectory;
+    private string _fullPath = string.Empty;
+    private string _statusText = "";
+    private string _statusIcon = "";
+    private SvnItemState _svnState = SvnItemState.None;
 
-    [ObservableProperty]
-    private SvnSyncState _syncState = SvnSyncState.Synced;
-
-    [ObservableProperty]
-    private string _lastSyncTime = string.Empty;
-
-    [ObservableProperty]
-    private bool _isSelected;
-
-    public string StateIcon => SyncState switch
+    public string Name
     {
-        SvnSyncState.Synced => "✓",
-        SvnSyncState.Syncing => "↻",
-        SvnSyncState.Modified => "✏",
-        SvnSyncState.Pending => "↑",
-        SvnSyncState.Conflict => "⚠",
-        SvnSyncState.Error => "✗",
-        _ => "—"
-    };
+        get => _name;
+        set => SetProperty(ref _name, value);
+    }
 
-    public string StateColor => SyncState switch
+    public string TypeIcon
     {
-        SvnSyncState.Synced => "#22C55E",
-        SvnSyncState.Syncing => "#3B82F6",
-        SvnSyncState.Modified => "#F59E0B",
-        SvnSyncState.Pending => "#6B7280",
-        SvnSyncState.Conflict => "#EF4444",
-        SvnSyncState.Error => "#EF4444",
-        _ => "#6B7280"
-    };
+        get => _typeIcon;
+        set => SetProperty(ref _typeIcon, value);
+    }
 
-    public string FileIcon => IsDirectory ? "📁" : "📄";
-}
+    public long FileSize
+    {
+        get => _fileSize;
+        set => SetProperty(ref _fileSize, value);
+    }
 
-public enum SvnSyncState
-{
-    Synced,
-    Syncing,
-    Modified,
-    Pending,
-    Conflict,
-    Ignored,
-    Locked,
-    Error,
+    public string FileSizeDisplay => IsDirectory ? "--" : FormatSize(FileSize);
+
+    public DateTime LastModified
+    {
+        get => _lastModified;
+        set => SetProperty(ref _lastModified, value);
+    }
+
+    public string LastModifiedDisplay => LastModified.ToString("yyyy-MM-dd HH:mm");
+
+    public bool IsDirectory
+    {
+        get => _isDirectory;
+        set
+        {
+            if (SetProperty(ref _isDirectory, value))
+            {
+                TypeIcon = value ? "📁" : "📄";
+                OnPropertyChanged(nameof(FileSizeDisplay));
+            }
+        }
+    }
+
+    public string FullPath
+    {
+        get => _fullPath;
+        set => SetProperty(ref _fullPath, value);
+    }
+
+    public string StatusText
+    {
+        get => _statusText;
+        set => SetProperty(ref _statusText, value);
+    }
+
+    public string StatusIcon
+    {
+        get => _statusIcon;
+        set => SetProperty(ref _statusIcon, value);
+    }
+
+    public SvnItemState SvnState
+    {
+        get => _svnState;
+        set
+        {
+            if (SetProperty(ref _svnState, value))
+            {
+                (StatusIcon, StatusText) = value switch
+                {
+                    SvnItemState.Added => ("🟢", "新增"),
+                    SvnItemState.Modified => ("🟡", "已修改"),
+                    SvnItemState.Deleted => ("🔴", "已删除"),
+                    SvnItemState.Conflicted => ("⚠️", "冲突"),
+                    SvnItemState.Unversioned => ("⬜", "未受控"),
+                    _ => ("✅", "正常")
+                };
+            }
+        }
+    }
+
+    /// <summary>从 SvnFileItemState 同步到 FileItemViewModel</summary>
+    public void SyncFrom(SvnFileItemState state)
+    {
+        Name = state.Name;
+        FullPath = state.FullPath;
+        IsDirectory = state.IsFolder;
+        FileSize = state.FileSize;
+        LastModified = state.ModifyTime;
+        SvnState = state.State;
+    }
+
+    private static string FormatSize(long bytes)
+    {
+        if (bytes < 1024) return $"{bytes} B";
+        if (bytes < 1024 * 1024) return $"{bytes / 1024.0:F1} KB";
+        if (bytes < 1024 * 1024 * 1024) return $"{bytes / 1024.0 / 1024.0:F1} MB";
+        return $"{bytes / 1024.0 / 1024.0 / 1024.0:F2} GB";
+    }
 }

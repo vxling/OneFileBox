@@ -1,122 +1,48 @@
-using Avalonia;
+using System.Collections.Generic;
 using Avalonia.Controls;
 using Avalonia.Input;
-using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
-using OneFileBox.ViewModels;
+using Avalonia.Interactivity;
+using OneFileBox_new.ViewModels;
 
-namespace OneFileBox.Views;
+namespace OneFileBox_new.Views;
 
 public partial class MainWindow : Window
 {
     public MainWindow()
     {
         InitializeComponent();
-        Loaded += OnLoaded;
-    }
+        AddHandler(DragDrop.DragEnterEvent, OnDragEnter);
+        AddHandler(DragDrop.DropEvent, OnDrop);
 
-    private void OnLoaded(object? sender, RoutedEventArgs e)
-    {
-        // Register pointer events on NavBorder using AddHandler
-        // Border does NOT support PointerEnter/PointerLeave directly in Avalonia 12
-        var navBorder = this.FindControl<Border>("NavBorder");
-        if (navBorder != null)
-        {
-            navBorder.AddHandler(InputElement.PointerEnteredEvent, NavPanel_PointerEnter, RoutingStrategies.Bubble);
-            navBorder.AddHandler(InputElement.PointerExitedEvent, NavPanel_PointerLeave, RoutingStrategies.Bubble);
-        }
-
-        // Toolbar button event bindings
-        this.FindControl<Button>("OpenWorkingCopyBtn")!.Click += OpenWorkingCopy_Click;
-        this.FindControl<Button>("SettingsBtn")!.Click += Settings_Click;
-        this.FindControl<Button>("AddRepoBtn")!.Click += AddRepository_Click;
-        this.FindControl<Button>("RefreshBtn")!.Click += Refresh_Click;
-
-        // File list double-click to enter directory
-        var fileListBox = this.FindControl<ListBox>("FileListBox");
-        if (fileListBox != null)
-        {
-            fileListBox.DoubleTapped += FileListBox_DoubleTapped;
-        }
-    }
-
-    /// <summary>
-    /// Pointer entered nav panel - expand if collapsed and not pinned
-    /// </summary>
-    private void NavPanel_PointerEnter(object? sender, PointerEventArgs e)
-    {
+        // 注入 HostTopLevel，使 ViewModel 能访问 StorageProvider
         if (DataContext is MainWindowViewModel vm)
-            vm.Expand();
+            vm.HostTopLevel = TopLevel.GetTopLevel(this);
     }
 
-    /// <summary>
-    /// Pointer left nav panel - collapse if not pinned
-    /// </summary>
-    private void NavPanel_PointerLeave(object? sender, PointerEventArgs e)
+    private void OnDragEnter(object? sender, DragEventArgs e)
     {
-        if (DataContext is MainWindowViewModel vm)
-            vm.CollapseIfNotPinned();
+        if (DataTransferExtensions.Contains(e.DataTransfer, DataFormat.File))
+            e.DragEffects = DragDropEffects.Copy;
+        else
+            e.DragEffects = DragDropEffects.None;
+        e.Handled = true;
     }
 
-    private void PinButton_Click(object? sender, RoutedEventArgs e)
+    private async void OnDrop(object? sender, DragEventArgs e)
     {
-        if (DataContext is MainWindowViewModel vm)
-            vm.TogglePin();
-    }
+        if (!DataTransferExtensions.Contains(e.DataTransfer, DataFormat.File)) return;
 
-    private async void OpenWorkingCopy_Click(object? sender, RoutedEventArgs e)
-    {
-        var topLevel = GetTopLevel(this);
-        if (topLevel == null) return;
+        var items = DataTransferExtensions.TryGetFiles(e.DataTransfer);
+        if (items == null || items.Length == 0) return;
 
-        var result = await topLevel.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
-        {
-            Title = "选择工作副本目录",
-            AllowMultiple = false,
-        });
+        var paths = new List<string>();
+        foreach (var item in items)
+            paths.Add(item.Path.LocalPath);
 
-        if (result.Count > 0 && DataContext is MainWindowViewModel vm)
-        {
-            vm.HomeVm.CurrentPath = result[0].Path.LocalPath;
-        }
-    }
+        if (DataContext is MainWindowViewModel vm && paths.Count > 0)
+            await vm.HandleDroppedFiles(paths.ToArray());
 
-    private void Settings_Click(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is MainWindowViewModel vm)
-            vm.NavSelectedIndex = 0;
-    }
-
-    private void AddRepository_Click(object? sender, RoutedEventArgs e)
-    {
-        // TODO: Show add repository dialog
-    }
-
-    private async void Refresh_Click(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is MainWindowViewModel vm && vm.HomeVm.SyncNowCommand.CanExecute(null))
-        {
-            await vm.HomeVm.SyncNowCommand.ExecuteAsync(null);
-        }
-    }
-
-    /// <summary>
-    /// ListBox double-click handler - enter directory if item is a folder
-    /// </summary>
-    private void FileListBox_DoubleTapped(object? sender, TappedEventArgs e)
-    {
-        if (DataContext is MainWindowViewModel vm && vm.HomeVm.SelectedFile is FileItemViewModel file)
-        {
-            if (file.IsDirectory)
-            {
-                // Navigate into directory via HomeViewModel.NavigateIntoCommand
-                vm.HomeVm.NavigateIntoCommand.Execute(file);
-            }
-            else
-            {
-                // Open file
-                vm.HomeVm.OpenItemCommand.Execute(file);
-            }
-        }
+        e.Handled = true;
     }
 }

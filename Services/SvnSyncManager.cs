@@ -61,8 +61,8 @@ public class SvnSyncManager : IDisposable
 
     #region Queue & Lock
 
-    private readonly Channel<SvnSyncTask> _highTaskChannel;
-    private readonly Channel<SvnSyncTask> _lowTaskChannel;
+    private Channel<SvnSyncTask> _highTaskChannel = null!;
+    private Channel<SvnSyncTask> _lowTaskChannel = null!; // CS8618: initialized in parameterized ctor before use
     private readonly object _svnWriteOperateLock = new();
     private bool _isWriteTaskRunning;
     private readonly ConcurrentDictionary<string, byte> _pendingCommitFiles = new();
@@ -302,7 +302,7 @@ public class SvnSyncManager : IDisposable
         if (string.IsNullOrEmpty(xmlStatus)) return localFiles;
 
         var doc = XDocument.Parse(xmlStatus);
-        var ns = doc.Root?.Name.Namespace;
+        var ns = doc.Root?.Name.Namespace!;
         var entries = doc.Descendants(ns + "entry").ToList();
 
         foreach (var item in localFiles)

@@ -206,7 +206,7 @@ public static partial class SvnCmdHelper
     {
         var list = new List<(string, long)>();
         if (xml == null) return list;
-        var ns = xml.Root?.Name.Namespace;
+        var ns = xml.Root?.Name.Namespace!;
         foreach (var entry in xml.Descendants(ns + "entry"))
         {
             string name = entry.Element(ns + "name")?.Value ?? "";
@@ -241,7 +241,7 @@ public static partial class SvnCmdHelper
             p.StandardInput.Flush();
             p.WaitForExit(8000);
             var doc = XDocument.Parse(p.StandardOutput.ReadToEnd().Trim());
-            var ns = doc.Root.Name.Namespace;
+            var ns = doc.Root?.Name.Namespace!;
             var revStr = doc.Descendants(ns + "revision").FirstOrDefault()?.Value;
             return long.TryParse(revStr, out long r) ? r : 0;
         }
@@ -257,7 +257,7 @@ public static partial class SvnCmdHelper
         try { doc = XDocument.Parse(statusXml); }
         catch { return list; }
 
-        var ns = doc.Root?.Name.Namespace;
+        var ns = doc.Root?.Name.Namespace!;
         var conflictItems = doc.Descendants(ns + "entry")
             .Where(e => e.Element(ns + "status")?.Attribute("item")?.Value == "conflicted");
 
@@ -291,6 +291,7 @@ public static partial class SvnCmdHelper
         };
 
         using var p = Process.Start(psi);
+        if (p == null) return "";
         p.StandardInput.WriteLine(pwd);
         p.StandardInput.Flush();
         p.WaitForExit(5000);

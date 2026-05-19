@@ -241,14 +241,36 @@ public partial class MainWindowViewModel : ViewModelBase
     [RelayCommand]
     private void Commit()
     {
-        GlobalSvnRepoManager.Instance.CurrentActiveRepo?.EnqueueBatchCommit();
+        var mgr = GlobalSvnRepoManager.Instance.CurrentActiveRepo;
+        if (mgr == null)
+        {
+            StatusText = "未选择仓库";
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(mgr.UserName) || string.IsNullOrWhiteSpace(mgr.Password))
+        {
+            StatusText = "请先填写用户名和密码（仓库配置里）";
+            return;
+        }
+        mgr.EnqueueBatchCommit();
         StatusText = "提交已加入队列";
     }
 
     [RelayCommand]
     private void Update()
     {
-        GlobalSvnRepoManager.Instance.CurrentActiveRepo?.EnqueueBatchUpdate();
+        var mgr = GlobalSvnRepoManager.Instance.CurrentActiveRepo;
+        if (mgr == null)
+        {
+            StatusText = "未选择仓库";
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(mgr.UserName) || string.IsNullOrWhiteSpace(mgr.Password))
+        {
+            StatusText = "请先填写用户名和密码（仓库配置里）";
+            return;
+        }
+        mgr.EnqueueBatchUpdate();
         StatusText = "更新已加入队列";
     }
 

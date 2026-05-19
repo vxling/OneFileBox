@@ -1,12 +1,14 @@
 using System;
 using System.Collections.ObjectModel;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Platform.Storage;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using OneFileBox_new.Views;
 using OneFileBox_new.Models;
 using OneFileBox_new.Services;
 
@@ -48,6 +50,39 @@ public partial class MainWindowViewModel : ViewModelBase
         GlobalSvnRepoManager.Instance.RepoSwitched += OnRepoSwitched;
     }
 
+    /// <summary>
+    /// 启动时调用：加载配置，注册所有仓库。
+    /// </summary>
+    public async Task InitializeAsync()
+    {
+        var repos = await ConfigService.Instance.LoadRepositoriesAsync();
+        foreach (var cfg in repos)
+        {
+            var vm = new RepositoryItemViewModel
+            {
+                Key = cfg.Key,
+                Name = cfg.Name,
+                Path = cfg.LocalPath,
+                SvnUrl = cfg.SvnUrl,
+                UserName = cfg.UserName,
+                Password = cfg.Password
+            };
+            Repositories.Add(vm);
+            GlobalSvnRepoManager.Instance.RegisterRepo(cfg);
+        }
+
+        // 恢复上次激活的仓库
+        var lastKey = ConfigService.Instance.Config.LastActiveRepoKey;
+        if (!string.IsNullOrEmpty(lastKey))
+        {
+            var last = Repositories.FirstOrDefault(r => r.Key == lastKey);
+            if (last != null) SelectedRepository = last;
+        }
+
+        if (Repositories.Count == 0)
+            StatusText = "请添加本地仓库";
+    }
+
     #region Repo Management
 
     [RelayCommand]
@@ -55,45 +90,35 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         if (HostTopLevel == null) return;
 
-        var result = await HostTopLevel.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+        var existing = Repositories.Select(r => new RepoConfig
         {
-            Title = "选择本地 SVN 工作副本目录",
-            AllowMultiple = false
-        });
+            Key = r.Key,
+            LocalPath = r.Path
+        }).ToList();
 
-        if (result.Count == 0) return;
+        var dialog = new AddLocalRepoWindow(existing, HostTopLevel);
+        var win = HostTopLevel as Window;
+        var result = win != null ? await dialog.ShowDialog<bool>(win) : false;
 
-        var folder = result[0];
-        var localPath = folder.Path.LocalPath;
-        var name = new DirectoryInfo(localPath).Name;
+        if (!result || dialog.ResultRepo == null) return;
 
-        var repoVm = new RepositoryItemViewModel
+        var repo = dialog.ResultRepo;
+        var vm = new RepositoryItemViewModel
         {
-            Key = Guid.NewGuid().ToString("N")[..8],
-            Name = name,
-            Path = localPath,
-            SvnUrl = "",
-            UserName = "",
-            Password = ""
+            Key = repo.Key,
+            Name = repo.Name,
+            Path = repo.LocalPath,
+            SvnUrl = repo.SvnUrl,
+            UserName = repo.UserName,
+            Password = repo.Password
         };
 
-        Repositories.Add(repoVm);
+        Repositories.Add(vm);
+        GlobalSvnRepoManager.Instance.RegisterRepo(repo);
+        await ConfigService.Instance.AddOrUpdateRepoAsync(repo);
 
-        var config = new RepoConfig
-        {
-            Key = repoVm.Key,
-            Name = repoVm.Name,
-            LocalPath = repoVm.Path,
-            SvnUrl = repoVm.SvnUrl,
-            UserName = repoVm.UserName,
-            Password = repoVm.Password
-        };
-
-        GlobalSvnRepoManager.Instance.RegisterRepo(config);
-
-        // 选中新加的仓库
-        SelectedRepository = repoVm;
-        StatusText = $"已添加仓库：{name}";
+        SelectedRepository = vm;
+        StatusText = $"已添加仓库：{repo.Name}";
     }
 
     [RelayCommand]
@@ -114,6 +139,7 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         if (repo == null) return;
         Repositories.Remove(repo);
+        await ConfigService.Instance.RemoveRepoAsync(repo.Key);
         if (SelectedRepository == repo)
         {
             SelectedRepository = Repositories.Count > 0 ? Repositories[0] : null;
@@ -145,6 +171,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
         GlobalSvnRepoManager.Instance.RegisterRepo(config);
         await GlobalSvnRepoManager.Instance.SwitchActiveRepoAsync(repoVm.Key);
+        await ConfigService.Instance.SetLastActiveRepoAsync(repoVm.Key);
 
         // 切换文件监听
         FolderFileWatcher.Instance.SetWatchPath(repoVm.Path);

@@ -1,6 +1,8 @@
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using OneFileBox_new.Services;
 using OneFileBox_new.ViewModels;
 using OneFileBox_new.Views;
 
@@ -17,15 +19,15 @@ public partial class App : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            desktop.MainWindow = new MainWindow
-            {
-                DataContext = new MainWindowViewModel(),
-            };
+            var vm = new MainWindowViewModel();
+            desktop.MainWindow = new MainWindow { DataContext = vm };
+
+            // 启动时加载配置
+            _ = vm.InitializeAsync();
 
             desktop.ShutdownRequested += async (s, e) =>
             {
-                if (desktop.MainWindow?.DataContext is MainWindowViewModel vm)
-                    await vm.ShutdownAsync();
+                await vm.ShutdownAsync();
             };
         }
 

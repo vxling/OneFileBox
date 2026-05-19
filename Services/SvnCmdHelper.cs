@@ -417,6 +417,24 @@ public static partial class SvnCmdHelper
         return res.Success;
     }
 
+    public static async Task<string?> GetRepoUrlAsync(string localPath)
+    {
+        try
+        {
+            var res = await ExecuteWithRetryAsync(
+                $"info --xml \"{localPath}\"",
+                localPath, null!, null!, null!, null!);
+
+            if (res.ExitCode != 0 || string.IsNullOrEmpty(res.Output))
+                return null;
+
+            var doc = XDocument.Parse(res.Output);
+            var ns = doc.Root?.Name.Namespace!;
+            return doc.Descendants(ns + "url").FirstOrDefault()?.Value;
+        }
+        catch { return null; }
+    }
+
     public static async Task<bool> CleanUpAsync(
         string dir, string user, string pwd, SvnSyncManager manager)
     {

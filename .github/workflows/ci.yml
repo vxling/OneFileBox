@@ -34,7 +34,7 @@ jobs:
           dotnet-version: 10.0.x
 
       - name: Restore
-        run: dotnet restore OneFileBox.csproj
+        run: dotnet restore -r ${{ matrix.runtime-id }} OneFileBox.csproj
 
       - name: Build
         run: dotnet build -c Release --no-restore OneFileBox.csproj

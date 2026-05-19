@@ -5,6 +5,8 @@ on:
     branches: [master]
   pull_request:
     branches: [master]
+  push:
+    tags: [v*]
 
 jobs:
   build:
@@ -32,3 +34,16 @@ jobs:
       - name: Test
         run: dotnet test -c Release --no-build --verbosity quiet
         continue-on-error: true
+
+      - name: Publish
+        if: matrix.os == 'ubuntu-latest'
+        run: dotnet publish -c Release --no-restore -o publish
+
+      - name: Upload to GitHub Release
+        if: matrix.os == 'ubuntu-latest'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: publish/*
+          draft: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

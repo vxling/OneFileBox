@@ -45,7 +45,7 @@ jobs:
 
       - name: Publish (${{ matrix.runtime-id }})
         if: startsWith(github.ref, 'refs/tags/v')
-        run: dotnet publish OneFileBox.csproj -c Release --no-restore -r ${{ matrix.runtime-id }} -p:PublishReadyToRun=true -o ./publish/${{ matrix.runtime-id }}
+        run: dotnet publish OneFileBox.csproj -c Release --no-restore -r ${{ matrix.runtime-id }} -o ./publish/${{ matrix.runtime-id }}
 
       - name: Package (${{ matrix.runtime-id }})
         if: startsWith(github.ref, 'refs/tags/v')

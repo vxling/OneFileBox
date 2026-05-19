@@ -2,13 +2,14 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="OneFileBox_new.Views.AddLocalRepoWindow"
         Title="添加本地仓库"
-        Width="520"
-        Height="220"
+        Width="560"
+        Height="260"
         WindowStartupLocation="CenterOwner"
         CanResize="False"
         ShowInTaskbar="False">
 
   <DockPanel Margin="20">
+
     <!-- Path row -->
     <TextBlock DockPanel.Dock="Top" Text="本地路径" FontSize="13" Margin="0,0,0,6"/>
     <Grid DockPanel.Dock="Top" Margin="0,0,0,8">
@@ -20,6 +21,13 @@
       <Button x:Name="BrowseBtn" Grid.Column="1" Content="浏览..." Padding="16,6" Margin="8,0,0,0"
               Click="Browse_Click"/>
     </Grid>
+
+    <!-- Repo URL row -->
+    <TextBlock DockPanel.Dock="Top" Text="仓库地址" FontSize="13" Margin="0,0,0,6" IsVisible="False"/>
+    <TextBox x:Name="UrlBox" DockPanel.Dock="Top" IsReadOnly="True" Padding="8,6"
+             FontSize="12" Margin="0,0,0,8"
+             Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+             IsVisible="False"/>
 
     <!-- Error / Status -->
     <TextBlock x:Name="ErrorText" DockPanel.Dock="Top"

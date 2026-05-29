@@ -8,7 +8,6 @@
        Height="280" Width="420"
        WindowStartupLocation="CenterScreen"
        CanResize="False"
-       ShowTitle="False"
        Background="#1E88E5">
 
   <DockPanel Background="#1E88E5">

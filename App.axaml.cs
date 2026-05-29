@@ -41,7 +41,9 @@ public partial class App : Application
         try
         {
             _splash?.SetStatus("Loading configuration...");
+            SplashLog.Info("Starting InitializeAsync");
             await vm.InitializeAsync();
+            SplashLog.Info("InitializeAsync completed, showing main window");
             _splash?.SetStatus("Ready to start");
 
             await Task.Delay(300);
@@ -60,6 +62,7 @@ public partial class App : Application
         }
         catch (Exception ex)
         {
+            SplashLog.Error(ex, "Startup FAILED");
             SvnCliLog.Error(ex, "Startup failed");
             _splash?.ShowErrorAndClose(ex.Message);
         }
@@ -103,4 +106,19 @@ public partial class App : Application
             }
         };
     }
+
+internal static class SplashLog
+{
+    internal static void Info(string msg, params object[] args)
+    {
+        var full = args.Length > 0 ? $"[Splash] {msg}: {string.Join(", ", args)}" : $"[Splash] {msg}";
+        Console.WriteLine(full);
+    }
+    internal static void Error(Exception? ex, string msg, params object[] args)
+    {
+        var full = ex != null ? $"[Splash] ERROR {msg}: {ex.Message}" : $"[Splash] ERROR {msg}";
+        Console.WriteLine(full);
+    }
+}
+
 }

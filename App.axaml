@@ -1,15 +1,14 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:semi="https://irihi.tech/semi"
-             x:Class="OneFileBox_new.App"
-             xmlns:local="using:OneFileBox_new"
+             x:Class="OneFileBox.App"
+             xmlns:local="using:OneFileBox"
              RequestedThemeVariant="Default">
-             <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
 
     <Application.DataTemplates>
         <local:ViewLocator/>
     </Application.DataTemplates>
-  
+
     <Application.Styles>
         <semi:SemiTheme />
     </Application.Styles>

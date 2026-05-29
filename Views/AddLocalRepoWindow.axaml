@@ -1,6 +1,6 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        x:Class="OneFileBox_new.Views.AddLocalRepoWindow"
+        x:Class="OneFileBox.Views.AddLocalRepoWindow"
         Title="添加本地仓库"
         Width="560"
         Height="260"

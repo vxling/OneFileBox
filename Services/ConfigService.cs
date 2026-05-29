@@ -1,32 +1,38 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
-using OneFileBox_new.Models;
 
-namespace OneFileBox_new.Services;
+using OneFileBox.Models;
+
+namespace OneFileBox.Services;
+
+public class AppPaths
+{
+    public static string Base => Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+        "OneFileBox");
+
+    public static string Config => Path.Combine(Base, "config");
+    public static string WorkCopies => Path.Combine(Base, "workcopies");
+
+    public static string ConfigFile => Path.Combine(Config, "config.json");
+}
 
 public class ConfigService
 {
-    public static ConfigService Instance { get; } = new();
     private static ConfigService? _instance;
+    public static ConfigService Instance => _instance ??= new ConfigService();
 
-    public AppConfig Config { get; private set; } = new();
-    public string ConfigDir { get; }
+    private AppConfig _config = new();
+    private readonly string _configPath = AppPaths.ConfigFile;
 
-    private readonly string _configPath;
+    public AppConfig Config => _config;
 
-    public ConfigService()
-    {
-        _instance = this;
-        ConfigDir = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            "OneFileBox");
-
-        Directory.CreateDirectory(ConfigDir);
-        _configPath = Path.Combine(ConfigDir, "config.json");
-    }
+    public event Action? ConfigChanged;
 
     public async Task LoadAsync()
     {
@@ -35,60 +41,39 @@ public class ConfigService
             if (File.Exists(_configPath))
             {
                 var json = await File.ReadAllTextAsync(_configPath);
-                var config = JsonSerializer.Deserialize<AppConfig>(json);
-                if (config != null)
-                {
-                    Config = config;
-                    return;
-                }
+                _config = JsonSerializer.Deserialize<AppConfig>(json) ?? new AppConfig();
             }
         }
         catch (Exception ex)
         {
-            System.Console.WriteLine($"[ConfigService] Load failed: {ex.Message}");
+            SvnCliLog.Warning("ConfigService LoadAsync failed: {0}", ex.Message);
+            _config = new AppConfig();
         }
-        Config = new AppConfig();
     }
 
     public async Task SaveAsync()
     {
         try
         {
-            var json = JsonSerializer.Serialize(Config, new JsonSerializerOptions { WriteIndented = true });
+            Directory.CreateDirectory(AppPaths.Config);
+            var json = JsonSerializer.Serialize(_config, new JsonSerializerOptions { WriteIndented = true });
             await File.WriteAllTextAsync(_configPath, json);
         }
         catch (Exception ex)
         {
-            System.Console.WriteLine($"[ConfigService] Save failed: {ex.Message}");
+            SvnCliLog.Warning("ConfigService SaveAsync failed: {0}", ex.Message);
         }
     }
 
-    public async Task<List<RepoConfig>> LoadRepositoriesAsync()
+    public void AddRepository(Models.Repository repo)
     {
-        await LoadAsync();
-        return Config.Repositories;
+        _config.Repositories.Add(repo);
+        ConfigChanged?.Invoke();
     }
 
-    public async Task AddOrUpdateRepoAsync(RepoConfig repo)
+    public void RemoveRepository(string name)
     {
-        var existing = Config.Repositories.FindIndex(r => r.Key == repo.Key);
-        if (existing >= 0)
-            Config.Repositories[existing] = repo;
-        else
-            Config.Repositories.Add(repo);
-
-        await SaveAsync();
-    }
-
-    public async Task RemoveRepoAsync(string key)
-    {
-        Config.Repositories.RemoveAll(r => r.Key == key);
-        await SaveAsync();
-    }
-
-    public async Task SetLastActiveRepoAsync(string? key)
-    {
-        Config.LastActiveRepoKey = key;
-        await SaveAsync();
+        _config.Repositories.RemoveAll(r => r.Name == name);
+        ConfigChanged?.Invoke();
     }
 }

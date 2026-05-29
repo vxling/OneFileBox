@@ -1,115 +1,47 @@
 using System;
-using OneFileBox_new.Models;
+using CommunityToolkit.Mvvm.ComponentModel;
 
-namespace OneFileBox_new.ViewModels;
+namespace OneFileBox.ViewModels;
 
-public class FileItemViewModel : ViewModelBase
+public partial class FileItemViewModel : ViewModelBase
 {
-    private string _name = string.Empty;
-    private string _typeIcon = "📄";
-    private long _fileSize;
-    private DateTime _lastModified;
+    [ObservableProperty]
+    private string _name = "";
+
+    [ObservableProperty]
+    private string _fullPath = "";
+
+    [ObservableProperty]
     private bool _isDirectory;
-    private string _fullPath = string.Empty;
-    private string _statusText = "";
+
+    [ObservableProperty]
+    private long _fileSize;
+
+    [ObservableProperty]
+    private DateTime _lastModified;
+
+    [ObservableProperty]
+    private bool _isSelected;
+
+    [ObservableProperty]
+    private string _svnStatus = "";
+
+    [ObservableProperty]
     private string _statusIcon = "";
-    private SvnItemState _svnState = SvnItemState.None;
 
-    public string Name
-    {
-        get => _name;
-        set => SetProperty(ref _name, value);
-    }
+    [ObservableProperty]
+    private bool _isParentDirectory;
 
-    public string TypeIcon
-    {
-        get => _typeIcon;
-        set => SetProperty(ref _typeIcon, value);
-    }
+    public string FileSizeDisplay => IsDirectory ? "" : FormatFileSize(FileSize);
+    public string LastModifiedDisplay => LastModified == DateTime.MinValue ? "" : LastModified.ToString("yyyy-MM-dd HH:mm");
 
-    public long FileSize
-    {
-        get => _fileSize;
-        set => SetProperty(ref _fileSize, value);
-    }
+    public int SortGroup => IsParentDirectory ? 0 : 1;
 
-    public string FileSizeDisplay => IsDirectory ? "--" : FormatSize(FileSize);
-
-    public DateTime LastModified
-    {
-        get => _lastModified;
-        set => SetProperty(ref _lastModified, value);
-    }
-
-    public string LastModifiedDisplay => LastModified.ToString("yyyy-MM-dd HH:mm");
-
-    public bool IsDirectory
-    {
-        get => _isDirectory;
-        set
-        {
-            if (SetProperty(ref _isDirectory, value))
-            {
-                TypeIcon = value ? "📁" : "📄";
-                OnPropertyChanged(nameof(FileSizeDisplay));
-            }
-        }
-    }
-
-    public string FullPath
-    {
-        get => _fullPath;
-        set => SetProperty(ref _fullPath, value);
-    }
-
-    public string StatusText
-    {
-        get => _statusText;
-        set => SetProperty(ref _statusText, value);
-    }
-
-    public string StatusIcon
-    {
-        get => _statusIcon;
-        set => SetProperty(ref _statusIcon, value);
-    }
-
-    public SvnItemState SvnState
-    {
-        get => _svnState;
-        set
-        {
-            if (SetProperty(ref _svnState, value))
-            {
-                (StatusIcon, StatusText) = value switch
-                {
-                    SvnItemState.Added => ("🟢", "新增"),
-                    SvnItemState.Modified => ("🟡", "已修改"),
-                    SvnItemState.Deleted => ("🔴", "已删除"),
-                    SvnItemState.Conflicted => ("⚠️", "冲突"),
-                    SvnItemState.Unversioned => ("⬜", "未受控"),
-                    _ => ("✅", "正常")
-                };
-            }
-        }
-    }
-
-    /// <summary>从 SvnFileItemState 同步到 FileItemViewModel</summary>
-    public void SyncFrom(SvnFileItemState state)
-    {
-        Name = state.Name;
-        FullPath = state.FullPath;
-        IsDirectory = state.IsFolder;
-        FileSize = state.FileSize;
-        LastModified = state.ModifyTime;
-        SvnState = state.State;
-    }
-
-    private static string FormatSize(long bytes)
+    private static string FormatFileSize(long bytes)
     {
         if (bytes < 1024) return $"{bytes} B";
         if (bytes < 1024 * 1024) return $"{bytes / 1024.0:F1} KB";
-        if (bytes < 1024 * 1024 * 1024) return $"{bytes / 1024.0 / 1024.0:F1} MB";
-        return $"{bytes / 1024.0 / 1024.0 / 1024.0:F2} GB";
+        if (bytes < 1024 * 1024 * 1024) return $"{bytes / (1024.0 * 1024):F1} MB";
+        return $"{bytes / (1024.0 * 1024 * 1024):F1} GB";
     }
 }

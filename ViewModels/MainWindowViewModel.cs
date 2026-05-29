@@ -1,38 +1,38 @@
+#nullable enable
 using System;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using Avalonia;
-using Avalonia.Controls;
-using Avalonia.Platform.Storage;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using OneFileBox_new.Views;
-using OneFileBox_new.Models;
-using OneFileBox_new.Services;
+using OneFileBox.Models;
+using OneFileBox.Services;
 
-namespace OneFileBox_new.ViewModels;
+namespace OneFileBox.ViewModels;
 
 public partial class MainWindowViewModel : ViewModelBase
 {
+    private readonly ConfigService _configService;
+    private readonly SvnCliService _svnService;
+
     [ObservableProperty]
-    private ObservableCollection<RepositoryItemViewModel> _repositories = [];
+    private ObservableCollection<RepositoryItemViewModel> _repositories = new();
 
     [ObservableProperty]
     private RepositoryItemViewModel? _selectedRepository;
 
     [ObservableProperty]
-    private ObservableCollection<FileItemViewModel> _files = [];
+    private ObservableCollection<FileItemViewModel> _files = new();
 
     [ObservableProperty]
     private FileItemViewModel? _selectedFile;
 
     [ObservableProperty]
-    private string _currentPath = "No repository selected";
+    private string _currentPath = "";
 
     [ObservableProperty]
-    private string _statusText = "Ready";
+    private string _statusText = "就绪";
 
     [ObservableProperty]
     private string _itemCountText = "";
@@ -40,193 +40,105 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty]
     private bool _isLoading;
 
-    /// <summary>
-    /// 由 MainWindow 在构造后注入，避免 ViewModel 直接引用 View。
-    /// </summary>
-    public TopLevel? HostTopLevel { get; set; }
+    public event Action<string>? ShowAddLocalRepoDialog;
+    public event Action<string>? ShowCheckoutDialog;
+    public event Action<string>? ShowSettingsDialog;
+    public event Action<string>? ShowError;
 
     public MainWindowViewModel()
     {
-        GlobalSvnRepoManager.Instance.RepoSwitched += OnRepoSwitched;
+        _configService = ConfigService.Instance;
+        _svnService = new SvnCliService();
     }
 
-    /// <summary>
-    /// 启动时调用：加载配置，注册所有仓库。
-    /// </summary>
     public async Task InitializeAsync()
     {
-        var repos = await ConfigService.Instance.LoadRepositoriesAsync();
-        foreach (var cfg in repos)
+        await _configService.LoadAsync();
+        LoadRepositoriesFromConfig();
+        SvnCliLog.Information("MainWindowViewModel initialized with {0} repositories", _repositories.Count);
+    }
+
+    public Task ShutdownAsync() => Task.CompletedTask;
+
+    private void LoadRepositoriesFromConfig()
+    {
+        Repositories.Clear();
+        foreach (var repo in _configService.Config.Repositories)
         {
-            var vm = new RepositoryItemViewModel
+            Repositories.Add(new RepositoryItemViewModel
             {
-                Key = cfg.Key,
-                Name = cfg.Name,
-                Path = cfg.LocalPath,
-                SvnUrl = cfg.SvnUrl,
-                UserName = cfg.UserName,
-                Password = cfg.Password
-            };
-            Repositories.Add(vm);
-            GlobalSvnRepoManager.Instance.RegisterRepo(cfg);
+                Name = repo.Name,
+                Path = repo.Path,
+                IsActive = repo.IsActive
+            });
         }
-
-        // 恢复上次激活的仓库
-        var lastKey = ConfigService.Instance.Config.LastActiveRepoKey;
-        if (!string.IsNullOrEmpty(lastKey))
-        {
-            var last = Repositories.FirstOrDefault(r => r.Key == lastKey);
-            if (last != null) SelectedRepository = last;
-        }
-
-        if (Repositories.Count == 0)
-            StatusText = "请添加本地仓库";
-    }
-
-    #region Repo Management
-
-    [RelayCommand]
-    private async Task AddLocalRepo()
-    {
-        if (HostTopLevel == null) return;
-
-        var existing = Repositories.Select(r => new RepoConfig
-        {
-            Key = r.Key,
-            LocalPath = r.Path
-        }).ToList();
-
-        var dialog = new AddLocalRepoWindow(existing, HostTopLevel);
-        var win = HostTopLevel as Window;
-        var result = win != null ? await dialog.ShowDialog<bool>(win) : false;
-
-        if (!result || dialog.ResultRepo == null) return;
-
-        var repo = dialog.ResultRepo;
-        var vm = new RepositoryItemViewModel
-        {
-            Key = repo.Key,
-            Name = repo.Name,
-            Path = repo.LocalPath,
-            SvnUrl = repo.SvnUrl,
-            UserName = repo.UserName,
-            Password = repo.Password
-        };
-
-        Repositories.Add(vm);
-        GlobalSvnRepoManager.Instance.RegisterRepo(repo);
-        await ConfigService.Instance.AddOrUpdateRepoAsync(repo);
-
-        SelectedRepository = vm;
-        StatusText = $"已添加仓库：{repo.Name}";
-    }
-
-    [RelayCommand]
-    private async Task Checkout()
-    {
-        StatusText = "Checkout from network...";
-        await Task.Delay(100);
-    }
-
-    [RelayCommand]
-    private void Settings()
-    {
-        StatusText = "Settings...";
-    }
-
-    [RelayCommand]
-    private async Task RemoveRepo(RepositoryItemViewModel? repo)
-    {
-        if (repo == null) return;
-        Repositories.Remove(repo);
-        await ConfigService.Instance.RemoveRepoAsync(repo.Key);
-        if (SelectedRepository == repo)
-        {
-            SelectedRepository = Repositories.Count > 0 ? Repositories[0] : null;
-        }
+        if (Repositories.Count > 0 && SelectedRepository == null)
+            SelectedRepository = Repositories[0];
     }
 
     partial void OnSelectedRepositoryChanged(RepositoryItemViewModel? value)
     {
-        if (value == null) return;
-        _ = SwitchToRepoAsync(value);
-    }
-
-    private async Task SwitchToRepoAsync(RepositoryItemViewModel repoVm)
-    {
-        IsLoading = true;
-        StatusText = $"切换到：{repoVm.Name}...";
-        CurrentPath = repoVm.Path;
-
-        // 注册（或更新）仓库配置
-        var config = new RepoConfig
+        if (value != null && !string.IsNullOrEmpty(value.Path))
         {
-            Key = repoVm.Key,
-            Name = repoVm.Name,
-            LocalPath = repoVm.Path,
-            SvnUrl = repoVm.SvnUrl,
-            UserName = repoVm.UserName,
-            Password = repoVm.Password
-        };
-
-        GlobalSvnRepoManager.Instance.RegisterRepo(config);
-        await GlobalSvnRepoManager.Instance.SwitchActiveRepoAsync(repoVm.Key);
-        await ConfigService.Instance.SetLastActiveRepoAsync(repoVm.Key);
-
-        // 切换文件监听
-        FolderFileWatcher.Instance.SetWatchPath(repoVm.Path);
-
-        // 刷新文件列表
-        await RefreshCurrentDirectoryFileList();
-        IsLoading = false;
-    }
-
-    private void OnRepoSwitched(string repoKey)
-    {
-        StatusText = $"已切换到仓库：{repoKey}";
-    }
-
-    #endregion
-
-    #region File List Refresh
-
-    [RelayCommand]
-    private async Task Refresh()
-    {
-        if (SelectedRepository == null) return;
-        await RefreshCurrentDirectoryFileList();
-    }
-
-    private async Task RefreshCurrentDirectoryFileList()
-    {
-        if (string.IsNullOrEmpty(CurrentPath) || !Directory.Exists(CurrentPath))
-        {
-            Files.Clear();
-            ItemCountText = "";
-            return;
+            CurrentPath = value.Path;
+            _ = RefreshAsync();
         }
+    }
+
+    private async Task RefreshAsync()
+    {
+        if (string.IsNullOrEmpty(CurrentPath)) return;
 
         IsLoading = true;
-        StatusText = "正在加载文件列表...";
+        StatusText = "正在加载...";
+        Files.Clear();
 
         try
         {
-            var svnStates = await GlobalSvnRepoManager.Instance.GetCurrentRepoDirectoryFiles(CurrentPath);
-
-            Files.Clear();
-            foreach (var state in svnStates)
+            var fileInfos = new DirectoryInfo(CurrentPath).GetFileSystemInfos();
+            var parentDir = new FileItemViewModel
             {
-                var vm = new FileItemViewModel();
-                vm.SyncFrom(state);
+                Name = "..",
+                IsDirectory = true,
+                IsParentDirectory = true,
+                FullPath = Path.GetDirectoryName(CurrentPath) ?? ""
+            };
+            Files.Add(parentDir);
+
+            var statuses = await _svnService.GetStatusAsync(CurrentPath, depth: false);
+
+            foreach (var info in fileInfos.OrderByDescending(f => f is DirectoryInfo).ThenBy(f => f.Name))
+            {
+                var isDir = info is DirectoryInfo;
+                var fullPath = info.FullName;
+                var name = info.Name;
+
+                statuses.TryGetValue(fullPath, out var svnStatus);
+                statuses.TryGetValue(fullPath + Path.DirectorySeparatorChar.ToString(), out var svnStatusDir);
+
+                var status = isDir ? svnStatusDir : svnStatus;
+
+                var vm = new FileItemViewModel
+                {
+                    Name = name,
+                    FullPath = fullPath,
+                    IsDirectory = isDir,
+                    LastModified = info.LastWriteTime,
+                    FileSize = isDir ? 0 : (info as FileInfo)?.Length ?? 0,
+                    SvnStatus = status.ToString(),
+                    StatusIcon = GetStatusIcon(status)
+                };
                 Files.Add(vm);
             }
 
-            ItemCountText = $"{Files.Count} items";
-            StatusText = SelectedRepository != null ? $"当前仓库：{SelectedRepository.Name}" : "Ready";
+            var count = Files.Count - 1;
+            ItemCountText = $"{count} 项";
+            StatusText = "就绪";
         }
         catch (Exception ex)
         {
-            StatusText = $"加载失败：{ex.Message}";
+            SvnCliLog.Error(ex, "RefreshAsync failed for {Path}", CurrentPath);
+            StatusText = "加载失败: " + ex.Message;
         }
         finally
         {
@@ -234,109 +146,95 @@ public partial class MainWindowViewModel : ViewModelBase
         }
     }
 
-    #endregion
-
-    #region File Operations
-
-    [RelayCommand]
-    private void Commit()
+    private static string GetStatusIcon(FileSvnStatus status) => status switch
     {
-        var mgr = GlobalSvnRepoManager.Instance.CurrentActiveRepo;
-        if (mgr == null)
-        {
-            StatusText = "未选择仓库";
-            return;
-        }
-        if (string.IsNullOrWhiteSpace(mgr.UserName) || string.IsNullOrWhiteSpace(mgr.Password))
-        {
-            StatusText = "请先填写用户名和密码（仓库配置里）";
-            return;
-        }
-        mgr.EnqueueBatchCommit();
-        StatusText = "提交已加入队列";
-    }
-
-    [RelayCommand]
-    private void Update()
-    {
-        var mgr = GlobalSvnRepoManager.Instance.CurrentActiveRepo;
-        if (mgr == null)
-        {
-            StatusText = "未选择仓库";
-            return;
-        }
-        if (string.IsNullOrWhiteSpace(mgr.UserName) || string.IsNullOrWhiteSpace(mgr.Password))
-        {
-            StatusText = "请先填写用户名和密码（仓库配置里）";
-            return;
-        }
-        mgr.EnqueueBatchUpdate();
-        StatusText = "更新已加入队列";
-    }
+        FileSvnStatus.Modified => "✏️",
+        FileSvnStatus.Added => "➕",
+        FileSvnStatus.Deleted => "❌",
+        FileSvnStatus.Conflicted => "⚠️",
+        FileSvnStatus.TreeConflicted => "⚠️",
+        FileSvnStatus.Unversioned => "❓",
+        FileSvnStatus.Missing => "❓",
+        FileSvnStatus.Replaced => "🔄",
+        _ => ""
+    };
 
     [RelayCommand]
     private async Task NavigateUp()
     {
         if (string.IsNullOrEmpty(CurrentPath)) return;
-        var parent = Directory.GetParent(CurrentPath);
-        if (parent == null) return;
-        CurrentPath = parent.FullName;
-        await RefreshCurrentDirectoryFileList();
+        var parent = Path.GetDirectoryName(CurrentPath);
+        if (string.IsNullOrEmpty(parent)) return;
+
+        // Find repo root
+        var repo = Repositories.FirstOrDefault(r => CurrentPath.StartsWith(r.Path));
+        if (repo != null && parent.Length >= repo.Path.Length)
+        {
+            CurrentPath = parent;
+            await RefreshAsync();
+        }
     }
 
     [RelayCommand]
-    private async Task NavigateInto(FileItemViewModel? item)
+    private async Task Refresh()
     {
-        if (item == null || !item.IsDirectory) return;
-        CurrentPath = item.FullPath;
-        await RefreshCurrentDirectoryFileList();
+        await RefreshAsync();
     }
 
-    #endregion
-
-    #region Drag & Drop (programmatic file copy)
-
-    public async Task HandleDroppedFiles(string[] paths)
+    [RelayCommand]
+    private async Task NavigateTo(FileItemViewModel item)
     {
-        if (SelectedRepository == null)
+        if (item.IsParentDirectory)
         {
-            StatusText = "请先选择一个仓库";
+            await NavigateUp();
             return;
         }
 
-        var targetRoot = SelectedRepository.Path;
-        if (string.IsNullOrEmpty(targetRoot) || !Directory.Exists(targetRoot))
+        if (item.IsDirectory)
         {
-            StatusText = "仓库目录无效";
+            CurrentPath = item.FullPath;
+            await RefreshAsync();
             return;
         }
+    }
 
+    [RelayCommand]
+    private void AddLocalRepo()
+    {
+        ShowAddLocalRepoDialog?.Invoke("");
+    }
+
+    [RelayCommand]
+    private void Checkout()
+    {
+        ShowCheckoutDialog?.Invoke("");
+    }
+
+    [RelayCommand]
+    private async Task Commit()
+    {
+        if (string.IsNullOrEmpty(CurrentPath)) return;
         IsLoading = true;
-        StatusText = "正在导入文件...";
+        StatusText = "正在提交...";
 
         try
         {
-            foreach (var sourcePath in paths)
+            var result = await _svnService.CommitAsync(CurrentPath, "OneFileBox commit");
+            if (result)
             {
-                if (Directory.Exists(sourcePath))
-                {
-                    string destDir = Path.Combine(targetRoot, Path.GetFileName(sourcePath));
-                    CopyDirectoryRecursive(sourcePath, destDir);
-                }
-                else if (File.Exists(sourcePath))
-                {
-                    string destFile = Path.Combine(targetRoot, Path.GetFileName(sourcePath));
-                    File.Copy(sourcePath, destFile, true);
-                    GlobalSvnRepoManager.Instance.CurrentActiveRepo?.DebounceFileChanged(destFile);
-                }
+                StatusText = "提交成功";
+                await RefreshAsync();
             }
-
-            await RefreshCurrentDirectoryFileList();
-            StatusText = "导入完成";
+            else
+            {
+                StatusText = "提交失败";
+                ShowError?.Invoke("Commit failed — check repository status");
+            }
         }
         catch (Exception ex)
         {
-            StatusText = $"导入失败：{ex.Message}";
+            SvnCliLog.Error(ex, "Commit failed for {Path}", CurrentPath);
+            StatusText = "提交失败: " + ex.Message;
         }
         finally
         {
@@ -344,29 +242,77 @@ public partial class MainWindowViewModel : ViewModelBase
         }
     }
 
-    private void CopyDirectoryRecursive(string sourceDir, string targetDir)
+    [RelayCommand]
+    private async Task Update()
     {
-        if (!Directory.Exists(targetDir)) Directory.CreateDirectory(targetDir);
+        if (string.IsNullOrEmpty(CurrentPath)) return;
+        IsLoading = true;
+        StatusText = "正在更新...";
 
-        foreach (var file in Directory.GetFiles(sourceDir))
+        try
         {
-            string destFile = Path.Combine(targetDir, Path.GetFileName(file));
-            File.Copy(file, destFile, true);
-            GlobalSvnRepoManager.Instance.CurrentActiveRepo?.DebounceFileChanged(destFile);
+            var result = await _svnService.UpdateAsync(CurrentPath);
+            if (result)
+            {
+                StatusText = "更新成功";
+                await RefreshAsync();
+            }
+            else
+            {
+                StatusText = "更新失败";
+            }
         }
-
-        foreach (var subDir in Directory.GetDirectories(sourceDir))
+        catch (Exception ex)
         {
-            string subTarget = Path.Combine(targetDir, Path.GetFileName(subDir));
-            CopyDirectoryRecursive(subDir, subTarget);
+            SvnCliLog.Error(ex, "Update failed for {Path}", CurrentPath);
+            StatusText = "更新失败: " + ex.Message;
+        }
+        finally
+        {
+            IsLoading = false;
         }
     }
 
-    #endregion
-
-    public async Task ShutdownAsync()
+    [RelayCommand]
+    private void Settings()
     {
-        FolderFileWatcher.Instance.StopWatch();
-        await GlobalSvnRepoManager.Instance.ShutdownAllAsync();
+        ShowSettingsDialog?.Invoke("");
+    }
+
+    [RelayCommand]
+    private async Task RemoveRepo(RepositoryItemViewModel repo)
+    {
+        if (repo == null) return;
+        _configService.RemoveRepository(repo.Name);
+        await _configService.SaveAsync();
+        Repositories.Remove(repo);
+        if (SelectedRepository == repo)
+            SelectedRepository = Repositories.FirstOrDefault();
+    }
+
+    [RelayCommand]
+    private void AddLocalRepoConfirmed(string path)
+    {
+        if (string.IsNullOrEmpty(path) || !Directory.Exists(path)) return;
+        if (!_svnService.IsValidWorkingCopy(path))
+        {
+            ShowError?.Invoke("不是有效的 SVN 工作副本（没有 .svn 目录）");
+            return;
+        }
+
+        var name = new DirectoryInfo(path).Name;
+        var repo = new Repository
+        {
+            Name = name,
+            Path = path,
+            IsActive = true,
+            RepositoryType = RepositoryType.Local
+        };
+
+        _configService.AddRepository(repo);
+        _ = _configService.SaveAsync();
+
+        Repositories.Add(new RepositoryItemViewModel { Name = name, Path = path, IsActive = true });
+        SelectedRepository = Repositories.Last();
     }
 }

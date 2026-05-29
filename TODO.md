@@ -227,6 +227,17 @@
 
 ---
 
+### P2-6：CheckoutWindow 双重功能（密码过期触发）
+**文件**：`Views/CheckoutWindow.axaml` + `.axaml.cs`
+**说明**：
+- **功能一**：正常 checkout（从 SVN URL 检出仓库）
+- **功能二**：密码过期时重新验证（SVN 缓存失效 → 触发 `CredentialExpired` → 调用 CheckoutWindow 重新输入密码）
+- 当前 OneFileBox 的 CheckoutWindow 只有功能一，功能二待实现
+
+**关联**：`SvnCliService.CredentialExpired` 事件 → `CheckoutWindow.ShowDialog()` 重新验证
+
+---
+
 ## 六、注意事项
 
 - **编译优先**：每实现一个功能，立即 `dotnet build` 验证

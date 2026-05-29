@@ -1,8 +1,8 @@
 <Window xmlns="https://github.com/avaloniaui"
        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+       xmlns:models="using:OneFileBox.Models"
        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-       xmlns:models="using:OneFileBox.Models"
        mc:Ignorable="d" d:DesignWidth="600" d:DesignHeight="420"
        x:Class="OneFileBox.Views.ConflictWindow"
        Title="Conflicts Detected"
@@ -60,33 +60,15 @@
                     </StackPanel>
 
                     <!-- Suggestion badge -->
-                    <Border Grid.Column="1" CornerRadius="3" Padding="8,2"
+                    <Border Grid.Column="1" Background="#E6F4FF" CornerRadius="3" Padding="8,2"
                             VerticalAlignment="Center" Margin="8,0,0,0">
-                      <Border.Style>
-                        <Style Selector="Border">
-                          <Setter Property="Background" Value="#E6F4FF"/>
-                        </Style>
-                        <Style Selector="Border[Tag=LocalNewer]">
-                          <Setter Property="Background" Value="#FFF3CD"/>
-                        </Style>
-                      </Border.Style>
-                      <TextBlock FontSize="11">
-                        <TextBlock.Style>
-                          <Style Selector="TextBlock">
-                            <Setter Property="Foreground" Value="#0066CC"/>
-                            <Setter Property="Text" Value="Accept Server (default)"/>
-                          </Style>
-                          <Style Selector="TextBlock[IsEnabled=False]">
-                            <Setter Property="Text" Value="Keep Local (tree conflict only)"/>
-                          </Style>
-                        </TextBlock.Style>
-                      </TextBlock>
+                      <TextBlock FontSize="11" Foreground="#0066CC" Text="Accept Server (default)"/>
                     </Border>
 
                     <!-- Resolution selector -->
                     <Grid Grid.Column="2" VerticalAlignment="Center">
                       <ComboBox SelectedValue="{Binding SelectedResolution}"
-                                SelectedValuePath="Tag"
+                                
                                 Width="150">
                         <ComboBoxItem Content="Keep Local" Tag="{x:Static models:ConflictResolution.KeepLocal}"/>
                         <ComboBoxItem Content="Accept Server" Tag="{x:Static models:ConflictResolution.AcceptServer}"/>

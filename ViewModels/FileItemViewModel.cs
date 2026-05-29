@@ -59,6 +59,34 @@ public partial class FileItemViewModel : ViewModelBase
         }
     }
 
+    public string TypeIconPath
+    {
+        get
+        {
+            if (IsParentDirectory) return "/Assets/Icons/parent_dir.png";
+            if (IsDirectory) return "/Assets/Icons/dir.png";
+            var ext = System.IO.Path.GetExtension(Name ?? "").ToLowerInvariant();
+            return ext switch
+            {
+                ".cs" or ".fs" or ".vb" or ".java" or ".py" or ".go" or ".rs" or ".c" or ".cpp" or ".h" or ".hpp" => "/Assets/Icons/word.png",
+                ".xlsx" or ".xls" or ".xlsm" or ".csv" => "/Assets/Icons/excel.png",
+                ".docx" or ".doc" or ".odt" or ".rtf" => "/Assets/Icons/word.png",
+                ".pptx" or ".ppt" or ".odp" => "/Assets/Icons/ppt.png",
+                ".pdf" => "/Assets/Icons/pdf.png",
+                ".jpg" or ".jpeg" or ".png" or ".gif" or ".bmp" or ".webp" or ".ico" or ".svg" or ".tiff" => "/Assets/Icons/image.png",
+                ".mp4" or ".avi" or ".mkv" or ".mov" or ".wmv" or ".flv" or ".webm" => "/Assets/Icons/image.png",
+                ".mp3" or ".wav" or ".flac" or ".aac" or ".ogg" or ".wma" => "/Assets/Icons/image.png",
+                ".zip" or ".rar" or ".7z" or ".tar" or ".gz" or ".bz2" => "/Assets/Icons/zip.png",
+                ".txt" or ".md" or ".log" or ".ini" or ".cfg" or ".conf" => "/Assets/Icons/txt.png",
+                ".json" => "/Assets/Icons/json.png",
+                ".xml" or ".yaml" or ".yml" or ".toml" => "/Assets/Icons/json.png",
+                ".html" or ".htm" or ".css" or ".js" or ".ts" or ".jsx" or ".tsx" or ".vue" or ".sass" or ".scss" => "/Assets/Icons/html.png",
+                ".exe" or ".msi" or ".dll" or ".sys" or ".bat" or ".cmd" or ".ps1" => "/Assets/Icons/word.png",
+                _ => "/Assets/Icons/txt.png"
+            };
+        }
+    }
+
     public string FileSizeDisplay => IsDirectory ? "" : FormatFileSize(FileSize);
     public string LastModifiedDisplay => LastModified == DateTime.MinValue ? "" : LastModified.ToString("yyyy-MM-dd HH:mm");
 

@@ -26,45 +26,53 @@ public partial class App : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
+            var vm = new MainWindowViewModel();
+
             _splash = new SplashWindow();
             _splash.Show();
 
-            var vm = new MainWindowViewModel();
-            _ = InitializeWithSplashAsync(vm, desktop);
+            _ = InitializeWithSplashAsync(vm, desktop, _splash);
         }
 
         base.OnFrameworkInitializationCompleted();
     }
 
-    private async Task InitializeWithSplashAsync(MainWindowViewModel vm, IClassicDesktopStyleApplicationLifetime desktop)
+    private async Task InitializeWithSplashAsync(MainWindowViewModel vm, IClassicDesktopStyleApplicationLifetime desktop, SplashWindow splash)
     {
         try
         {
-            _splash?.SetStatus("Loading configuration...");
+            splash.SetStatus("Loading configuration...");
             SplashLog.Info("Starting InitializeAsync");
-            await vm.InitializeAsync();
-            SplashLog.Info("InitializeAsync completed, showing main window");
-            _splash?.SetStatus("Ready to start");
 
+            // Initialize the ViewModel
+            await vm.InitializeAsync();
+            SplashLog.Info("InitializeAsync completed, creating MainWindow");
+
+            splash.SetStatus("Ready to start");
             await Task.Delay(300);
 
+            // Create and show main window
             var mainWindow = new MainWindow { DataContext = vm };
             desktop.MainWindow = mainWindow;
-            _splash?.Close();
-            _splash = null;
 
+            // Close splash AFTER MainWindow is set
+            splash.Close();
+            
+
+            // Setup tray icon
             SetupTrayIcon(vm, desktop);
 
-            desktop.ShutdownRequested += async (s, e) =>
-            {
-                await vm.ShutdownAsync();
-            };
+            // Now show the main window (after splash is closed)
+            mainWindow.Show();
+            mainWindow.Activate();
+
+            SplashLog.Info("MainWindow shown");
         }
         catch (Exception ex)
         {
             SplashLog.Error(ex, "Startup FAILED");
             SvnCliLog.Error(ex, "Startup failed");
-            _splash?.ShowErrorAndClose(ex.Message);
+            splash.ShowErrorAndClose(ex.Message);
         }
     }
 

@@ -291,7 +291,7 @@ public partial class MainWindowViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private void AddLocalRepoConfirmed(string path)
+    public void AddLocalRepoConfirmed(string path)
     {
         if (string.IsNullOrEmpty(path) || !Directory.Exists(path)) return;
         if (!_svnService.IsValidWorkingCopy(path))

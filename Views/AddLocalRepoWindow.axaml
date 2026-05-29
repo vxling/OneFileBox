@@ -2,51 +2,42 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="OneFileBox.Views.AddLocalRepoWindow"
         Title="添加本地仓库"
-        Width="560"
-        Height="260"
+        Width="480"
+        Height="200"
         WindowStartupLocation="CenterOwner"
         CanResize="False"
         ShowInTaskbar="False">
 
-  <DockPanel Margin="20">
+    <DockPanel Margin="20">
+        <!-- Path row -->
+        <TextBlock DockPanel.Dock="Top" Text="本地路径" FontSize="13" Margin="0,0,0,6"/>
+        <Grid DockPanel.Dock="Top" Margin="0,0,0,8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBox x:Name="PathBox" Grid.Column="0" IsReadOnly="True" Padding="8,6"/>
+            <Button x:Name="BrowseBtn" Grid.Column="1" Content="浏览..." Padding="16,6" Margin="8,0,0,0"
+                    Click="Browse_Click"/>
+        </Grid>
 
-    <!-- Path row -->
-    <TextBlock DockPanel.Dock="Top" Text="本地路径" FontSize="13" Margin="0,0,0,6"/>
-    <Grid DockPanel.Dock="Top" Margin="0,0,0,8">
-      <Grid.ColumnDefinitions>
-        <ColumnDefinition Width="*"/>
-        <ColumnDefinition Width="Auto"/>
-      </Grid.ColumnDefinitions>
-      <TextBox x:Name="PathBox" Grid.Column="0" IsReadOnly="True" Padding="8,6"/>
-      <Button x:Name="BrowseBtn" Grid.Column="1" Content="浏览..." Padding="16,6" Margin="8,0,0,0"
-              Click="Browse_Click"/>
-    </Grid>
+        <!-- Error / Status -->
+        <TextBlock x:Name="ErrorText" DockPanel.Dock="Top"
+                   Foreground="#DC3545" FontSize="12" Margin="0,0,0,4"
+                   TextWrapping="Wrap" IsVisible="False"/>
+        <TextBlock x:Name="StatusText" DockPanel.Dock="Top"
+                   FontSize="12" Margin="0,0,0,4"
+                   TextWrapping="Wrap" IsVisible="False"/>
 
-    <!-- Repo URL row -->
-    <TextBlock DockPanel.Dock="Top" Text="仓库地址" FontSize="13" Margin="0,0,0,6" IsVisible="False"/>
-    <TextBox x:Name="UrlBox" DockPanel.Dock="Top" IsReadOnly="True" Padding="8,6"
-             FontSize="12" Margin="0,0,0,8"
-             Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-             IsVisible="False"/>
+        <!-- Buttons -->
+        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal"
+                    HorizontalAlignment="Right" Margin="0,12,0,0">
+            <Button x:Name="OkBtn" Content="确定" Padding="20,8" Margin="0,0,10,0"
+                    Click="Ok_Click" IsEnabled="False"/>
+            <Button x:Name="CancelBtn" Content="取消" Padding="20,8"
+                    Click="Cancel_Click"/>
+        </StackPanel>
 
-    <!-- Error / Status -->
-    <TextBlock x:Name="ErrorText" DockPanel.Dock="Top"
-               Foreground="#DC3545" FontSize="12" Margin="0,0,0,4"
-               TextWrapping="Wrap" IsVisible="False"/>
-    <TextBlock x:Name="StatusText" DockPanel.Dock="Top"
-               FontSize="12" Margin="0,0,0,4"
-               TextWrapping="Wrap" IsVisible="False"/>
-
-    <!-- Buttons -->
-    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal"
-                HorizontalAlignment="Right" Margin="0,12,0,0">
-      <Button x:Name="OkBtn" Content="确定" Padding="20,8" Margin="0,0,10,0"
-              Click="Ok_Click" IsEnabled="False"/>
-      <Button x:Name="CancelBtn" Content="取消" Padding="20,8"
-              Click="Cancel_Click"/>
-    </StackPanel>
-
-    <!-- Spacer -->
-    <Panel/>
-  </DockPanel>
+        <Panel/>
+    </DockPanel>
 </Window>

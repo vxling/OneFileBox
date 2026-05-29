@@ -9,7 +9,7 @@
        Height="420" Width="600"
        WindowStartupLocation="CenterOwner"
        
-       CanResize="False">
+       x:CompileBindings="False" CanResize="False">
 
   <DockPanel Margin="16">
     <!-- Header -->

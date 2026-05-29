@@ -6,7 +6,7 @@
         WindowStartupLocation="CenterOwner"
         
         CanResize="False"
-        ShowInTaskbar="False">
+        x:CompileBindings="False" ShowInTaskbar="False">
 
     <Grid Margin="16">
         <Grid.ColumnDefinitions>

@@ -194,10 +194,8 @@
 
                     <!-- File list with context menu + multi-select -->
                     <DataGrid x:Name="FileDataGrid" ItemsSource="{Binding Files}"
-                              DoubleTapped="OnFileDoubleTapped"
                               IsVisible="{Binding !ShowSyncRecords}"
                               SelectedItem="{Binding SelectedFile, Mode=TwoWay}"
-                              SelectedItems="{Binding SelectedFiles, Mode=TwoWay}"
                               AutoGenerateColumns="False"
                               IsReadOnly="True"
                               GridLinesVisibility="Horizontal"

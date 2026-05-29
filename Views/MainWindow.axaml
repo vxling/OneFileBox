@@ -19,31 +19,31 @@
         <!-- Context menu shared across all file items -->
         <ContextMenu x:Key="FileContextMenu">
             <MenuItem Command="{Binding OpenFileCommand}">
-                <MenuItem.Icon><Image Source="/Assets/Icons/MenuIconOpen.png" Width="16" Height="16"/></MenuItem.Icon>
+                <MenuItem.Icon><Image Source="/Assets/MenuIconOpen.png" Width="16" Height="16"/></MenuItem.Icon>
                 <MenuItem.Header>打开</MenuItem.Header>
             </MenuItem>
             <Separator/>
             <MenuItem Command="{Binding RefreshCommand}" IsEnabled="{Binding CanOperate}">
-                <MenuItem.Icon><Image Source="/Assets/Icons/MenuIconRefresh.png" Width="16" Height="16"/></MenuItem.Icon>
+                <MenuItem.Icon><Image Source="/Assets/MenuIconRefresh.png" Width="16" Height="16"/></MenuItem.Icon>
                 <MenuItem.Header>刷新</MenuItem.Header>
             </MenuItem>
             <Separator/>
             <MenuItem Command="{Binding CopyCommand}" IsEnabled="{Binding CanDelete}">
-                <MenuItem.Icon><Image Source="/Assets/Icons/MenuIconCopy.png" Width="16" Height="16"/></MenuItem.Icon>
+                <MenuItem.Icon><Image Source="/Assets/MenuIconCopy.png" Width="16" Height="16"/></MenuItem.Icon>
                 <MenuItem.Header>复制</MenuItem.Header>
             </MenuItem>
             <Separator/>
             <MenuItem Command="{Binding PasteCommand}" IsEnabled="{Binding CanPaste}">
-                <MenuItem.Icon><Image Source="/Assets/Icons/MenuIconPaste.png" Width="16" Height="16"/></MenuItem.Icon>
+                <MenuItem.Icon><Image Source="/Assets/MenuIconPaste.png" Width="16" Height="16"/></MenuItem.Icon>
                 <MenuItem.Header>粘贴</MenuItem.Header>
             </MenuItem>
             <Separator/>
             <MenuItem Command="{Binding DeleteFileCommand}" IsEnabled="{Binding CanDelete}">
-                <MenuItem.Icon><Image Source="/Assets/Icons/MenuIconDelete.png" Width="16" Height="16"/></MenuItem.Icon>
+                <MenuItem.Icon><Image Source="/Assets/MenuIconDelete.png" Width="16" Height="16"/></MenuItem.Icon>
                 <MenuItem.Header>删除</MenuItem.Header>
             </MenuItem>
             <MenuItem Command="{Binding RenameFileCommand}" IsEnabled="{Binding CanRename}">
-                <MenuItem.Icon><Image Source="/Assets/Icons/MenuIconRename.png" Width="16" Height="16"/></MenuItem.Icon>
+                <MenuItem.Icon><Image Source="/Assets/MenuIconRename.png" Width="16" Height="16"/></MenuItem.Icon>
                 <MenuItem.Header>重命名</MenuItem.Header>
             </MenuItem>
             <Separator/>

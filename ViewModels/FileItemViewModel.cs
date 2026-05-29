@@ -63,26 +63,26 @@ public partial class FileItemViewModel : ViewModelBase
     {
         get
         {
-            if (IsParentDirectory) return "/Assets/Icons/parent_dir.png";
-            if (IsDirectory) return "/Assets/Icons/dir.png";
+            if (IsParentDirectory) return "/Assets/parent_dir.png";
+            if (IsDirectory) return "/Assets/dir.png";
             var ext = System.IO.Path.GetExtension(Name ?? "").ToLowerInvariant();
             return ext switch
             {
-                ".cs" or ".fs" or ".vb" or ".java" or ".py" or ".go" or ".rs" or ".c" or ".cpp" or ".h" or ".hpp" => "/Assets/Icons/word.png",
-                ".xlsx" or ".xls" or ".xlsm" or ".csv" => "/Assets/Icons/excel.png",
-                ".docx" or ".doc" or ".odt" or ".rtf" => "/Assets/Icons/word.png",
-                ".pptx" or ".ppt" or ".odp" => "/Assets/Icons/ppt.png",
-                ".pdf" => "/Assets/Icons/pdf.png",
-                ".jpg" or ".jpeg" or ".png" or ".gif" or ".bmp" or ".webp" or ".ico" or ".svg" or ".tiff" => "/Assets/Icons/image.png",
-                ".mp4" or ".avi" or ".mkv" or ".mov" or ".wmv" or ".flv" or ".webm" => "/Assets/Icons/image.png",
-                ".mp3" or ".wav" or ".flac" or ".aac" or ".ogg" or ".wma" => "/Assets/Icons/image.png",
-                ".zip" or ".rar" or ".7z" or ".tar" or ".gz" or ".bz2" => "/Assets/Icons/zip.png",
-                ".txt" or ".md" or ".log" or ".ini" or ".cfg" or ".conf" => "/Assets/Icons/txt.png",
-                ".json" => "/Assets/Icons/json.png",
-                ".xml" or ".yaml" or ".yml" or ".toml" => "/Assets/Icons/json.png",
-                ".html" or ".htm" or ".css" or ".js" or ".ts" or ".jsx" or ".tsx" or ".vue" or ".sass" or ".scss" => "/Assets/Icons/html.png",
-                ".exe" or ".msi" or ".dll" or ".sys" or ".bat" or ".cmd" or ".ps1" => "/Assets/Icons/word.png",
-                _ => "/Assets/Icons/txt.png"
+                ".cs" or ".fs" or ".vb" or ".java" or ".py" or ".go" or ".rs" or ".c" or ".cpp" or ".h" or ".hpp" => "/Assets/word.png",
+                ".xlsx" or ".xls" or ".xlsm" or ".csv" => "/Assets/excel.png",
+                ".docx" or ".doc" or ".odt" or ".rtf" => "/Assets/word.png",
+                ".pptx" or ".ppt" or ".odp" => "/Assets/ppt.png",
+                ".pdf" => "/Assets/pdf.png",
+                ".jpg" or ".jpeg" or ".png" or ".gif" or ".bmp" or ".webp" or ".ico" or ".svg" or ".tiff" => "/Assets/image.png",
+                ".mp4" or ".avi" or ".mkv" or ".mov" or ".wmv" or ".flv" or ".webm" => "/Assets/image.png",
+                ".mp3" or ".wav" or ".flac" or ".aac" or ".ogg" or ".wma" => "/Assets/image.png",
+                ".zip" or ".rar" or ".7z" or ".tar" or ".gz" or ".bz2" => "/Assets/zip.png",
+                ".txt" or ".md" or ".log" or ".ini" or ".cfg" or ".conf" => "/Assets/txt.png",
+                ".json" => "/Assets/json.png",
+                ".xml" or ".yaml" or ".yml" or ".toml" => "/Assets/json.png",
+                ".html" or ".htm" or ".css" or ".js" or ".ts" or ".jsx" or ".tsx" or ".vue" or ".sass" or ".scss" => "/Assets/html.png",
+                ".exe" or ".msi" or ".dll" or ".sys" or ".bat" or ".cmd" or ".ps1" => "/Assets/word.png",
+                _ => "/Assets/txt.png"
             };
         }
     }

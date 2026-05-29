@@ -1,28 +1,26 @@
 using System;
-using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace OneFileBox.Models;
 
-public partial class SyncRecord : ObservableObject
+public class SyncRecord
 {
-    [ObservableProperty]
-    private long _id;
+    public long Id { get; set; }
+    public DateTime Timestamp { get; set; } = DateTime.Now;
+    public string RepoName { get; set; } = "";
+    public string FilePath { get; set; } = "";
+    public string Operation { get; set; } = "";
+    public string Result { get; set; } = "";
+    public string Message { get; set; } = "";
 
-    [ObservableProperty]
-    private DateTime _timestamp = DateTime.Now;
-
-    [ObservableProperty]
-    private string _repoName = "";
-
-    [ObservableProperty]
-    private string _filePath = "";
-
-    [ObservableProperty]
-    private string _operation = ""; // Add / Update / Delete / Rename / ConflictResolved
-
-    [ObservableProperty]
-    private string _result = ""; // Success / Failed / Skipped
-
-    [ObservableProperty]
-    private string _message = "";
+    public string TimestampDisplay => Timestamp.ToString("yyyy-MM-dd HH:mm:ss");
+    public string RepoNameDisplay => RepoName;
+    public string FilePathDisplay => System.IO.Path.GetFileName(FilePath) ?? FilePath;
+    public string OperationDisplay => Operation;
+    public string ResultDisplay => Result switch
+    {
+        "Success" => "成功",
+        "Failed" => "失败",
+        "Skipped" => "跳过",
+        _ => Result
+    };
 }

@@ -1,0 +1,202 @@
+<Window xmlns="https://github.com/avaloniaui"
+       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+       mc:Ignorable="d" d:DesignWidth="450" d:DesignHeight="540"
+       x:Class="OneFileBox.Views.SettingsWindow"
+       Title="Settings"
+       Height="540" Width="450"
+       WindowStartupLocation="CenterOwner"
+       
+       CanResize="False">
+
+  <DockPanel Margin="15">
+    <!-- Header -->
+    <TextBlock DockPanel.Dock="Top" Text="Settings" FontSize="18" FontWeight="Bold" Margin="0,0,0,12"/>
+
+    <!-- OK/Cancel buttons at bottom -->
+    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+      <Button x:Name="CancelBtn" Content="Cancel" Padding="16,6" Margin="0,0,8,0" Click="Cancel_Click"/>
+      <Button x:Name="OkBtn" Content="OK" Classes="accent" Padding="16,6" Click="OK_Click"/>
+    </StackPanel>
+
+    <!-- Scrollable settings panel -->
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+      <StackPanel>
+
+        <!-- Auto Sync -->
+        <Border Classes="card" Margin="0,0,0,10" Padding="12">
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*"/>
+              <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <StackPanel Grid.Column="0">
+              <TextBlock Text="Auto Sync" FontWeight="SemiBold" FontSize="13"/>
+              <TextBlock Text="Automatically sync changes" FontSize="11"
+                         Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,2,0,0"/>
+            </StackPanel>
+            <CheckBox x:Name="AutoSyncCheckBox" Grid.Column="1" VerticalAlignment="Center" IsChecked="True"/>
+          </Grid>
+        </Border>
+
+        <!-- Sync Interval -->
+        <Border Classes="card" Margin="0,0,0,10" Padding="12">
+          <StackPanel>
+            <TextBlock Text="Sync Interval" FontWeight="SemiBold" FontSize="13"/>
+            <TextBlock Text="Check server for updates every N minutes" FontSize="11"
+                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,2,0,6"/>
+            <StackPanel Orientation="Horizontal">
+              <Slider x:Name="SyncIntervalSlider" Minimum="1" Maximum="10" Width="200"
+                      Value="1" TickFrequency="1" IsSnapToTickEnabled="True" VerticalAlignment="Center"/>
+              <TextBlock x:Name="SyncIntervalText" Margin="10,0,0,0" VerticalAlignment="Center" FontSize="12"/>
+            </StackPanel>
+          </StackPanel>
+        </Border>
+
+        <!-- File Transfer Timeout -->
+        <Border Classes="card" Margin="0,0,0,10" Padding="12">
+          <StackPanel>
+            <TextBlock Text="File Transfer Timeout" FontWeight="SemiBold" FontSize="13"/>
+            <TextBlock Text="Max wait time without progress during commit/update (2–10 min)" FontSize="11"
+                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,2,0,6"/>
+            <StackPanel Orientation="Horizontal">
+              <Slider x:Name="FileTransferTimeoutSlider" Minimum="30" Maximum="600" Width="200"
+                      Value="120" TickFrequency="30" IsSnapToTickEnabled="True" VerticalAlignment="Center"/>
+              <TextBlock x:Name="FileTransferTimeoutText" Margin="10,0,0,0" VerticalAlignment="Center" FontSize="12"/>
+            </StackPanel>
+          </StackPanel>
+        </Border>
+
+        <!-- Theme -->
+        <Border Classes="card" Margin="0,0,0,10" Padding="12">
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*"/>
+              <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <StackPanel Grid.Column="0">
+              <TextBlock Text="Theme" FontWeight="SemiBold" FontSize="13"/>
+              <TextBlock Text="Application appearance" FontSize="11"
+                         Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,2,0,0"/>
+            </StackPanel>
+            <ComboBox x:Name="ThemeComboBox" Grid.Column="1" Width="120" VerticalAlignment="Center">
+              <ComboBoxItem Content="System"/>
+              <ComboBoxItem Content="Light"/>
+              <ComboBoxItem Content="Dark"/>
+            </ComboBox>
+          </Grid>
+        </Border>
+
+        <!-- Language -->
+        <Border Classes="card" Margin="0,0,0,10" Padding="12">
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*"/>
+              <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <StackPanel Grid.Column="0">
+              <TextBlock Text="Language" FontWeight="SemiBold" FontSize="13"/>
+              <TextBlock Text="UI display language" FontSize="11"
+                         Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,2,0,0"/>
+            </StackPanel>
+            <ComboBox x:Name="LanguageComboBox" Grid.Column="1" Width="120" VerticalAlignment="Center">
+              <ComboBoxItem Content="System"/>
+              <ComboBoxItem Content="中文"/>
+              <ComboBoxItem Content="English"/>
+            </ComboBox>
+          </Grid>
+        </Border>
+
+        <!-- Minimize to Tray -->
+        <Border Classes="card" Margin="0,0,0,10" Padding="12">
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*"/>
+              <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <StackPanel Grid.Column="0">
+              <TextBlock Text="Minimize to Tray" FontWeight="SemiBold" FontSize="13"/>
+              <TextBlock Text="Hide to system tray instead of closing" FontSize="11"
+                         Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,2,0,0"/>
+            </StackPanel>
+            <CheckBox x:Name="MinimizeToTrayCheckBox" Grid.Column="1" VerticalAlignment="Center" IsChecked="True"/>
+          </Grid>
+        </Border>
+
+        <!-- Auto Start -->
+        <Border Classes="card" Margin="0,0,0,10" Padding="12">
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*"/>
+              <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <StackPanel Grid.Column="0">
+              <TextBlock Text="Start with Windows" FontWeight="SemiBold" FontSize="13"/>
+              <TextBlock Text="Launch on system startup" FontSize="11"
+                         Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,2,0,0"/>
+            </StackPanel>
+            <CheckBox x:Name="AutoStartCheckBox" Grid.Column="1" VerticalAlignment="Center"/>
+          </Grid>
+        </Border>
+
+        <!-- Proxy URL -->
+        <Border Classes="card" Margin="0,0,0,10" Padding="12">
+          <StackPanel>
+            <TextBlock Text="Proxy URL" FontWeight="SemiBold" FontSize="13"/>
+            <TextBlock Text="HTTP proxy for SVN connections (optional)" FontSize="11"
+                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,2,0,6"/>
+            <TextBox x:Name="ProxyUrlBox" Padding="4,3" FontSize="12"/>
+          </StackPanel>
+        </Border>
+
+        <!-- Advanced Settings -->
+        <Border Classes="card" Margin="0,10,0,10" Padding="12" BorderBrush="{DynamicResource ThemeBorderMidBrush}" BorderThickness="1">
+          <StackPanel>
+            <TextBlock Text="⚙️ Advanced Parameters" FontWeight="SemiBold" FontSize="13" Margin="0,0,0,2"/>
+            <TextBlock Text="For debugging and network tuning — not recommended for normal users" FontSize="11"
+                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,10"/>
+
+            <!-- File Transfer Timeout -->
+            <Grid Margin="0,0,0,8">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+              </Grid.ColumnDefinitions>
+              <StackPanel Grid.Column="0">
+                <TextBlock Text="File Transfer Timeout" FontWeight="SemiBold" FontSize="12"/>
+                <TextBlock Text="Max wait without progress during commit/update (30–600s)" FontSize="10"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,1,0,4"/>
+                <StackPanel Orientation="Horizontal">
+                  <Slider x:Name="FileTransferTimeoutSlider" Minimum="30" Maximum="600" Width="200"
+                          Value="120" TickFrequency="30" IsSnapToTickEnabled="True" VerticalAlignment="Center"/>
+                  <TextBlock x:Name="FileTransferTimeoutText" Margin="10,0,0,0" VerticalAlignment="Center" FontSize="11"/>
+                </StackPanel>
+              </StackPanel>
+            </Grid>
+
+            <!-- Local Command Timeout -->
+            <Grid>
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+              </Grid.ColumnDefinitions>
+              <StackPanel Grid.Column="0">
+                <TextBlock Text="Local Command Timeout" FontWeight="SemiBold" FontSize="12"/>
+                <TextBlock Text="Max time for add/delete/revert/resolve commands (1–60s)" FontSize="10"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,1,0,4"/>
+                <StackPanel Orientation="Horizontal">
+                  <Slider x:Name="LocalCommandTimeoutSlider" Minimum="1" Maximum="60" Width="200"
+                          Value="5" TickFrequency="1" IsSnapToTickEnabled="True" VerticalAlignment="Center"/>
+                  <TextBlock x:Name="LocalCommandTimeoutText" Margin="10,0,0,0" VerticalAlignment="Center" FontSize="11"/>
+                </StackPanel>
+              </StackPanel>
+            </Grid>
+
+          </StackPanel>
+        </Border>
+
+      </StackPanel>
+    </ScrollViewer>
+  </DockPanel>
+</Window>

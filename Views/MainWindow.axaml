@@ -1,6 +1,8 @@
 <Window xmlns="https://github.com/avaloniaui"
        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
        xmlns:vm="using:OneFileBox.ViewModels"
+       xmlns:converters="using:OneFileBox.Converters"
+       xmlns:display="using:OneFileBox.ViewModels"
        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
        mc:Ignorable="d" d:DesignWidth="1100" d:DesignHeight="580"
@@ -12,6 +14,55 @@
        WindowStartupLocation="CenterScreen"
        Icon="/Assets/avalonia-logo.ico"
        DragDrop.AllowDrop="True">
+
+    <Window.Resources>
+        <!-- Context menu shared across all file items -->
+        <ContextMenu x:Key="FileContextMenu">
+            <MenuItem Command="{Binding OpenFileCommand}">
+                <MenuItem.Icon><Image Source="/Assets/Icons/MenuIconOpen.png" Width="16" Height="16"/></MenuItem.Icon>
+                <MenuItem.Header>打开</MenuItem.Header>
+            </MenuItem>
+            <Separator/>
+            <MenuItem Command="{Binding RefreshCommand}" IsEnabled="{Binding CanOperate}">
+                <MenuItem.Icon><Image Source="/Assets/Icons/MenuIconRefresh.png" Width="16" Height="16"/></MenuItem.Icon>
+                <MenuItem.Header>刷新</MenuItem.Header>
+            </MenuItem>
+            <Separator/>
+            <MenuItem Command="{Binding CopyCommand}" IsEnabled="{Binding CanDelete}">
+                <MenuItem.Icon><Image Source="/Assets/Icons/MenuIconCopy.png" Width="16" Height="16"/></MenuItem.Icon>
+                <MenuItem.Header>复制</MenuItem.Header>
+            </MenuItem>
+            <Separator/>
+            <MenuItem Command="{Binding PasteCommand}" IsEnabled="{Binding CanPaste}">
+                <MenuItem.Icon><Image Source="/Assets/Icons/MenuIconPaste.png" Width="16" Height="16"/></MenuItem.Icon>
+                <MenuItem.Header>粘贴</MenuItem.Header>
+            </MenuItem>
+            <Separator/>
+            <MenuItem Command="{Binding DeleteFileCommand}" IsEnabled="{Binding CanDelete}">
+                <MenuItem.Icon><Image Source="/Assets/Icons/MenuIconDelete.png" Width="16" Height="16"/></MenuItem.Icon>
+                <MenuItem.Header>删除</MenuItem.Header>
+            </MenuItem>
+            <MenuItem Command="{Binding RenameFileCommand}" IsEnabled="{Binding CanRename}">
+                <MenuItem.Icon><Image Source="/Assets/Icons/MenuIconRename.png" Width="16" Height="16"/></MenuItem.Icon>
+                <MenuItem.Header>重命名</MenuItem.Header>
+            </MenuItem>
+            <Separator/>
+            <MenuItem Header="📁 新建">
+                <MenuItem Header="📂 文件夹" Command="{Binding NewFolderCommand}" IsEnabled="{Binding CanOperate}"/>
+                <MenuItem Header="📝 文本文件.txt" Command="{Binding NewTextFileCommand}" IsEnabled="{Binding CanOperate}"/>
+                <MenuItem Header="📄 Word 文档.docx" Command="{Binding NewWordDocCommand}" IsEnabled="{Binding CanOperate}"/>
+                <MenuItem Header="📊 Excel 表格.xlsx" Command="{Binding NewExcelSheetCommand}" IsEnabled="{Binding CanOperate}"/>
+                <MenuItem Header="📊 PowerPoint.pptx" Command="{Binding NewPowerPointCommand}" IsEnabled="{Binding CanOperate}"/>
+                <MenuItem Header="🖼️ PNG 图片.png" Command="{Binding NewPngImageCommand}" IsEnabled="{Binding CanOperate}"/>
+                <MenuItem Header="🖼️ BMP 图片.bmp" Command="{Binding NewBmpImageCommand}" IsEnabled="{Binding CanOperate}"/>
+            </MenuItem>
+            <Separator/>
+            <MenuItem Header="🔀 立即同步" Command="{Binding ManualSyncCommand}" IsEnabled="{Binding CanOperate}"/>
+            <MenuItem Header="📋 同步历史" Command="{Binding ToggleSyncRecordsViewCommand}"/>
+            <Separator/>
+            <MenuItem Header="📁 在资源管理器中显示" Command="{Binding OpenInExplorerCommand}" IsEnabled="{Binding CanDelete}"/>
+        </ContextMenu>
+    </Window.Resources>
 
     <DockPanel>
         <!-- Left Sidebar: repo list + action buttons -->
@@ -48,6 +99,16 @@
                             HorizontalAlignment="Stretch"
                             Command="{Binding UpdateCommand}"/>
                     <Separator Margin="0,4"/>
+                    <Button Content="📋 View Sync Records"
+                            Margin="0,0,0,8"
+                            Padding="8,6"
+                            HorizontalAlignment="Stretch"
+                            Command="{Binding ToggleSyncRecordsViewCommand}"/>
+                    <Button Content="ℹ️ About"
+                            Margin="0,0,0,8"
+                            Padding="8,6"
+                            HorizontalAlignment="Stretch"
+                            Command="{Binding ShowAboutCommand}"/>
                     <Button Content="⚙️ Settings"
                             Padding="8,6"
                             HorizontalAlignment="Stretch"
@@ -72,7 +133,10 @@
                                         Command="{Binding $parent[ListBox].((vm:MainWindowViewModel)DataContext).RemoveRepoCommand}"
                                         CommandParameter="{Binding}"/>
                                 <StackPanel VerticalAlignment="Center">
-                                    <TextBlock Text="{Binding Name}" FontWeight="Medium" FontSize="13"/>
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="{Binding TypeIcon}" FontSize="12" Margin="0,0,4,0" VerticalAlignment="Center"/>
+                                        <TextBlock Text="{Binding Name}" FontWeight="Medium" FontSize="13"/>
+                                    </StackPanel>
                                     <TextBlock Text="{Binding Path}" FontSize="10"
                                                TextTrimming="CharacterEllipsis" MaxWidth="130"
                                                Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
@@ -111,28 +175,60 @@
                                     ToolTip.Tip="返回上级目录"
                                     Command="{Binding NavigateUpCommand}"/>
                             <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                                <TextBlock Text="📁" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                                <TextBlock Text="{Binding CurrentPath}" FontSize="13"/>
+                                <TextBlock Text="Path:" FontSize="12" Margin="0,0,8,0" VerticalAlignment="Center"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                <TextBlock Text="{Binding CurrentPath}" FontSize="13" VerticalAlignment="Center"/>
                             </StackPanel>
                             <Button Grid.Column="2"
                                     Content="🔄 Refresh"
                                     Padding="12,6"
-                                    Command="{Binding RefreshCommand}"/>
+                                    Command="{Binding RefreshCommand}"
+                                    IsVisible="{Binding !ShowSyncRecords}"/>
+                            <Button Grid.Column="2"
+                                    Content="{Binding BackButtonText}"
+                                    Padding="12,6"
+                                    Command="{Binding CloseSyncRecordsViewCommand}"
+                                    IsVisible="{Binding ShowSyncRecords}"/>
                         </Grid>
                     </Border>
 
-                    <!-- File list -->
-                    <DataGrid ItemsSource="{Binding Files}"
+                    <!-- File list with context menu + multi-select -->
+                    <DataGrid x:Name="FileDataGrid" ItemsSource="{Binding Files}"
+                              DoubleTapped="OnFileDoubleTapped"
+                              IsVisible="{Binding !ShowSyncRecords}"
                               SelectedItem="{Binding SelectedFile, Mode=TwoWay}"
+                              SelectedItems="{Binding SelectedFiles, Mode=TwoWay}"
                               AutoGenerateColumns="False"
                               IsReadOnly="True"
                               GridLinesVisibility="Horizontal"
-                              BorderThickness="0">
+                              BorderThickness="0"
+                              ContextMenu="{DynamicResource FileContextMenu}"
+                              SelectionMode="Extended"
+                              CanUserResizeColumns="True">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="4*" MinWidth="200"/>
+                            <DataGridTextColumn Header="Type" Binding="{Binding TypeDisplay}" Width="80"/>
                             <DataGridTextColumn Header="Status" Binding="{Binding StatusIcon}" Width="70"/>
                             <DataGridTextColumn Header="Modified" Binding="{Binding LastModifiedDisplay}" Width="160"/>
                             <DataGridTextColumn Header="Size" Binding="{Binding FileSizeDisplay}" Width="100"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <!-- Sync Record List -->
+                    <DataGrid x:Name="SyncRecordGrid" ItemsSource="{Binding SyncRecords}"
+                              AutoGenerateColumns="False"
+                              IsReadOnly="True"
+                              GridLinesVisibility="Horizontal"
+                              BorderThickness="0"
+                              CanUserResizeColumns="True"
+                              IsVisible="{Binding ShowSyncRecords}">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="时间" Binding="{Binding TimestampDisplay}" Width="150"/>
+                            <DataGridTextColumn Header="仓库" Binding="{Binding RepoName}" Width="120"/>
+                            <DataGridTextColumn Header="操作" Binding="{Binding OperationDisplay}" Width="80"/>
+                            <DataGridTextColumn Header="文件" Binding="{Binding FilePath}" Width="*"/>
+                            <DataGridTextColumn Header="结果" Binding="{Binding ResultDisplay}" Width="70"/>
+                            <DataGridTextColumn Header="信息" Binding="{Binding Message}" Width="150"/>
                         </DataGrid.Columns>
                     </DataGrid>
                 </DockPanel>
@@ -142,15 +238,20 @@
             <Border Grid.Row="1" Classes="card" Margin="0,8,0,0" Padding="12,6">
                 <Grid>
                     <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
-                    <TextBlock Grid.Column="0"
+                    <!-- Sync status indicator -->
+                    <Ellipse Grid.Column="0" Width="10" Height="10" VerticalAlignment="Center" Margin="0,0,8,0"
+                             Fill="{Binding SyncStatus, Converter={x:Static converters:SyncStatusToColorConverter.Instance}}"/>
+                    <TextBlock Grid.Column="1"
                                Text="{Binding StatusText}"
                                FontSize="12"
                                VerticalAlignment="Center"
                                TextTrimming="CharacterEllipsis"/>
-                    <TextBlock Grid.Column="1"
+                    <TextBlock Grid.Column="2"
                                Text="{Binding ItemCountText}"
                                FontSize="12"
                                VerticalAlignment="Center"

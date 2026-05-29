@@ -1,6 +1,10 @@
+using System;
 using System.Threading.Tasks;
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Media.Imaging;
+using Avalonia.Platform;
 using Avalonia.Markup.Xaml;
 using OneFileBox.Services;
 using OneFileBox.ViewModels;
@@ -10,6 +14,9 @@ namespace OneFileBox;
 
 public partial class App : Application
 {
+    private SplashWindow? _splash;
+    private TrayIcon? _trayIcon;
+
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
@@ -19,16 +26,81 @@ public partial class App : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
+            _splash = new SplashWindow();
+            _splash.Show();
+
             var vm = new MainWindowViewModel();
-            desktop.MainWindow = new MainWindow { DataContext = vm };
-            _ = vm.InitializeAsync();
+            _ = InitializeWithSplashAsync(vm, desktop);
+        }
+
+        base.OnFrameworkInitializationCompleted();
+    }
+
+    private async Task InitializeWithSplashAsync(MainWindowViewModel vm, IClassicDesktopStyleApplicationLifetime desktop)
+    {
+        try
+        {
+            _splash?.SetStatus("Loading configuration...");
+            await vm.InitializeAsync();
+            _splash?.SetStatus("Ready to start");
+
+            await Task.Delay(300);
+
+            var mainWindow = new MainWindow { DataContext = vm };
+            desktop.MainWindow = mainWindow;
+            _splash?.Close();
+            _splash = null;
+
+            SetupTrayIcon(vm, desktop);
 
             desktop.ShutdownRequested += async (s, e) =>
             {
                 await vm.ShutdownAsync();
             };
         }
+        catch (Exception ex)
+        {
+            SvnCliLog.Error(ex, "Startup failed");
+            _splash?.ShowErrorAndClose(ex.Message);
+        }
+    }
 
-        base.OnFrameworkInitializationCompleted();
+    private void SetupTrayIcon(MainWindowViewModel vm, IClassicDesktopStyleApplicationLifetime desktop)
+    {
+        var trayMenu = new NativeMenu();
+
+        var showItem = new NativeMenuItem { Header = "显示主窗口" };
+        showItem.Command = vm.ShowWindowCommand;
+        trayMenu.Add(showItem);
+
+        trayMenu.Add(new NativeMenuItemSeparator());
+
+        var syncItem = new NativeMenuItem { Header = "立即同步" };
+        syncItem.Command = vm.SyncNowCommand;
+        trayMenu.Add(syncItem);
+
+        trayMenu.Add(new NativeMenuItemSeparator());
+
+        var exitItem = new NativeMenuItem { Header = "退出" };
+        exitItem.Command = vm.ExitCommand;
+        trayMenu.Add(exitItem);
+
+        _trayIcon = new TrayIcon
+        {
+            Icon = new WindowIcon(AssetLoader.Open(new Uri("avares://OneFileBox/Assets/avalonia-logo.ico"))),
+            ToolTipText = "OneFileBox — SVN 文件管理器",
+            Menu = trayMenu
+        };
+
+        _trayIcon.Clicked += (s, e) => vm.ShowWindowCommand.Execute(null);
+
+        desktop.ShutdownRequested += (s, e) =>
+        {
+            if (ConfigService.Instance.Config.MinimizeToTray && !vm.IsExiting)
+            {
+                e.Cancel = true;
+                desktop.MainWindow?.Hide();
+            }
+        };
     }
 }

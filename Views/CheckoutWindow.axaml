@@ -1,0 +1,65 @@
+<Window xmlns="https://github.com/avaloniaui"
+       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+       mc:Ignorable="d" d:DesignWidth="450" d:DesignHeight="360"
+       x:Class="OneFileBox.Views.CheckoutWindow"
+       Title="Checkout Repository"
+       Height="360" Width="450"
+       WindowStartupLocation="CenterOwner"
+       
+       CanResize="False">
+
+  <DockPanel Margin="15">
+    <!-- Header -->
+    <TextBlock DockPanel.Dock="Top" Text="Checkout Repository" FontSize="18" FontWeight="Bold" Margin="0,0,0,12"/>
+
+    <!-- OK/Cancel at bottom -->
+    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+      <Button x:Name="CancelBtn" Content="Cancel" Click="Cancel_Click" Padding="16,6" Margin="0,0,8,0"/>
+      <Button x:Name="OkBtn" Content="OK" Classes="accent" Click="OK_Click" Padding="16,6"/>
+    </StackPanel>
+
+    <!-- Form fields -->
+    <StackPanel>
+      <!-- Repo Name -->
+      <TextBlock Text="Repository Name" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,4"/>
+      <TextBox x:Name="RepoNameBox" Padding="4,3" FontSize="13" Margin="0,0,0,10"
+               TextChanged="RepoName_TextChanged"/>
+
+      <!-- Repo URL -->
+      <TextBlock Text="Repository URL" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,4"/>
+      <TextBox x:Name="RepoUrlBox" Padding="4,3" FontSize="13" Margin="0,0,0,10"/>
+
+      <!-- Username -->
+      <TextBlock Text="Username (optional)" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,4"/>
+      <TextBox x:Name="UsernameBox" Padding="4,3" FontSize="13" Margin="0,0,0,10"/>
+
+      <!-- Password -->
+      <TextBlock Text="Password (optional)" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,4"/>
+      <TextBox x:Name="PasswordBox" Padding="4,3" FontSize="13" Margin="0,0,0,10"/>
+
+      <!-- Local Path -->
+      <TextBlock Text="Local Path" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,4"/>
+      <Grid Margin="0,0,0,10">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*"/>
+          <ColumnDefinition Width="Auto"/>
+        </Grid.ColumnDefinitions>
+        <TextBox x:Name="LocalPathBox" Grid.Column="0" IsReadOnly="True" Padding="4,3" FontSize="13"/>
+        <Button Grid.Column="1" Content="Browse" Click="Browse_Click" Padding="12,4" Margin="8,0,0,0"/>
+      </Grid>
+
+      <!-- Error -->
+      <TextBlock x:Name="ErrorText" Foreground="#DC3545" FontSize="12" Margin="0,0,0,6"
+                 TextWrapping="Wrap" MaxHeight="40" TextTrimming="CharacterEllipsis"
+                 IsVisible="False"/>
+
+      <!-- Progress -->
+      <ProgressBar x:Name="CheckoutProgress" Height="4" Margin="0,0,0,6"
+                  IsIndeterminate="False" IsVisible="False"/>
+      <TextBlock x:Name="StatusText" FontSize="12" Margin="0,0,0,4"
+                 TextWrapping="Wrap" IsVisible="False" Foreground="#666"/>
+    </StackPanel>
+  </DockPanel>
+</Window>

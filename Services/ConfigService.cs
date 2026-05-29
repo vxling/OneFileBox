@@ -43,6 +43,10 @@ public class ConfigService
                 var json = await File.ReadAllTextAsync(_configPath);
                 _config = JsonSerializer.Deserialize<AppConfig>(json) ?? new AppConfig();
             }
+
+            // Apply timeouts from config → SvnCliService
+            SvnCliService.FileTransferTimeoutMs = _config.FileTransferTimeoutSeconds * 1000;
+            SvnCliService.LocalCommandTimeoutMs = _config.LocalCommandTimeoutSeconds * 1000;
         }
         catch (Exception ex)
         {

@@ -1,10 +1,14 @@
 #nullable enable
 using System;
+using System.Collections.Generic;
+using System.IO.Compression;
+using System.Timers;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
+using OneFileBox.ViewModels;
 using CommunityToolkit.Mvvm.Input;
 using OneFileBox.Models;
 using OneFileBox.Services;
@@ -15,6 +19,7 @@ public partial class MainWindowViewModel : ViewModelBase
 {
     private readonly ConfigService _configService;
     private readonly SvnCliService _svnService;
+    private readonly RepoGlobalManager _globalManager;
 
     [ObservableProperty]
     private ObservableCollection<RepositoryItemViewModel> _repositories = new();
@@ -40,15 +45,104 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty]
     private bool _isLoading;
 
+    [ObservableProperty]
+    private bool _showSyncRecords;
+
+    [ObservableProperty]
+    private bool _isExiting;
+
+    [ObservableProperty]
+    private string _backButtonText = "← 返回";
+
+    [ObservableProperty]
+    private ObservableCollection<SyncRecordDisplay> _syncRecords = new();
+
+    // Context menu enable flags
+    [ObservableProperty]
+    private bool _canOperate;
+
+    [ObservableProperty]
+    private bool _canDelete;
+
+    [ObservableProperty]
+    private bool _canRename;
+
+    [ObservableProperty]
+    private ObservableCollection<FileItemViewModel> _selectedFiles = new();
+
+    [ObservableProperty]
+    private bool _canPaste;
+
+    [ObservableProperty]
+    private bool _canCopyPath;
+
+    public enum SyncStatusType { Idle, Syncing, Success, Failed }
+
+    [ObservableProperty]
+    private SyncStatusType _syncStatus = SyncStatusType.Idle;
+
+    private string _savedStatus = "就绪";
+    private System.Timers.Timer? _transientTimer;
+
+
+
+    // FileCopier for copy/paste
+    private readonly FileCopier _fileCopier = new();
+
     public event Action<string>? ShowAddLocalRepoDialog;
     public event Action<string>? ShowCheckoutDialog;
     public event Action<string>? ShowSettingsDialog;
     public event Action<string>? ShowError;
+    public event Action? ShowWindowRequested;
+    public event Action? ShowAboutRequested;
+    public event Action<List<ConflictedFileInfo>>? ShowConflictDialog;
+
+    public RepoGlobalManager GlobalManager => _globalManager;
+    public SvnCliService SvnService => _svnService;
+    public FileCopier GetFileCopier() => _fileCopier;
 
     public MainWindowViewModel()
     {
         _configService = ConfigService.Instance;
         _svnService = new SvnCliService();
+        _globalManager = new RepoGlobalManager();
+        _fileCopier.SetSvnService(_svnService);
+
+        // Bridge CredentialExpired to UI error
+        _svnService.CredentialExpired += (url) => {
+            ShowError?.Invoke($"凭据已过期，请重新输入密码: {url}");
+        };
+
+        // Bridge RepoGlobalManager events to ViewModel events
+        _globalManager.FilesChanged += (s, e) => { _ = RefreshAsync(); };
+        _globalManager.SyncNotification += (s, msg) => {
+            StatusText = msg;
+            if (msg != null && (msg.Contains("完成") || msg.Contains("成功")))
+                SyncStatus = SyncStatusType.Success;
+            else if (msg != null && (msg.Contains("失败") || msg.Contains("错误")))
+                SyncStatus = SyncStatusType.Failed;
+            else
+                SyncStatus = SyncStatusType.Syncing;
+        };
+
+        // Transient status timer for auto-clear messages
+        _transientTimer = new System.Timers.Timer(3000);
+        _transientTimer.AutoReset = false;
+        _transientTimer.Elapsed += (s, e) => {
+            StatusText = _savedStatus;
+            SyncStatus = SyncStatusType.Idle;
+        };
+
+    }
+
+    /// <summary>Set a transient status message that auto-clears after 3 seconds.</summary>
+    public void SetTransientStatus(string message, SyncStatusType status = SyncStatusType.Syncing)
+    {
+        _savedStatus = StatusText;
+        StatusText = message;
+        SyncStatus = status;
+        _transientTimer?.Stop();
+        _transientTimer?.Start();
     }
 
     public async Task InitializeAsync()
@@ -69,7 +163,9 @@ public partial class MainWindowViewModel : ViewModelBase
             {
                 Name = repo.Name,
                 Path = repo.Path,
-                IsActive = repo.IsActive
+                IsActive = repo.IsActive,
+                Url = repo.Url ?? "",
+                RepositoryType = (int)repo.RepositoryType
             });
         }
         if (Repositories.Count > 0 && SelectedRepository == null)
@@ -78,11 +174,50 @@ public partial class MainWindowViewModel : ViewModelBase
 
     partial void OnSelectedRepositoryChanged(RepositoryItemViewModel? value)
     {
-        if (value != null && !string.IsNullOrEmpty(value.Path))
+        if (value == null || string.IsNullOrEmpty(value.Path)) return;
+
+        // Mark as active in config
+        foreach (var r in Repositories)
+            r.IsActive = r.Path == value.Path;
+        _configService.Config.ActiveRepositoryName = value.Name;
+
+        CurrentPath = value.Path;
+        CanOperate = true;
+        _ = RefreshAsync();
+
+        // Switch to the RepoManager for this repository
+        var manager = _globalManager.Managers.FirstOrDefault(m => m.Repository.Path == value.Path);
+        if (manager != null)
         {
-            CurrentPath = value.Path;
-            _ = RefreshAsync();
+            _ = _globalManager.SwitchToAsync(manager);
         }
+        else
+        {
+            // First time selecting this repo — create a new RepoManager
+            var repo = new Repository
+            {
+                Name = value.Name,
+                Path = value.Path,
+                IsActive = true,
+                RepositoryType = RepositoryType.Local
+            };
+            manager = _globalManager.CreateLocal(repo);
+            _ = _globalManager.SwitchToAsync(manager);
+        }
+    }
+
+    partial void OnSelectedFileChanged(FileItemViewModel? value)
+    {
+        CanDelete = value != null && !value.IsParentDirectory;
+        CanRename = value != null && !value.IsParentDirectory;
+        CanCopyPath = value != null;
+        CanPaste = _copiedPaths.Count > 0 && CanOperate;
+    }
+
+    partial void OnShowSyncRecordsChanged(bool value)
+    {
+        if (value)
+            LoadSyncRecords();
     }
 
     private async Task RefreshAsync()
@@ -168,7 +303,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
         // Find repo root
         var repo = Repositories.FirstOrDefault(r => CurrentPath.StartsWith(r.Path));
-        if (repo != null && parent.Length >= repo.Path.Length)
+        if (repo != null && parent.Length > repo.Path.Length)
         {
             CurrentPath = parent;
             await RefreshAsync();
@@ -283,6 +418,17 @@ public partial class MainWindowViewModel : ViewModelBase
     private async Task RemoveRepo(RepositoryItemViewModel repo)
     {
         if (repo == null) return;
+        var manager = _globalManager.Managers.FirstOrDefault(m => m.Repository.Path == repo.Path);
+        try
+        {
+            if (manager != null)
+                await manager.DismissAsync();
+        }
+        catch (Exception ex)
+        {
+            ShowError?.Invoke($"关闭仓库失败: {ex.Message}");
+        }
+
         _configService.RemoveRepository(repo.Name);
         await _configService.SaveAsync();
         Repositories.Remove(repo);
@@ -291,7 +437,7 @@ public partial class MainWindowViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    public void AddLocalRepoConfirmed(string path)
+    public async Task AddLocalRepoConfirmed(string path)
     {
         if (string.IsNullOrEmpty(path) || !Directory.Exists(path)) return;
         if (!_svnService.IsValidWorkingCopy(path))
@@ -309,10 +455,229 @@ public partial class MainWindowViewModel : ViewModelBase
             RepositoryType = RepositoryType.Local
         };
 
-        _configService.AddRepository(repo);
-        _ = _configService.SaveAsync();
-
-        Repositories.Add(new RepositoryItemViewModel { Name = name, Path = path, IsActive = true });
-        SelectedRepository = Repositories.Last();
+        try
+        {
+            _configService.AddRepository(repo);
+            await _configService.SaveAsync();
+            Repositories.Add(new RepositoryItemViewModel { Name = name, Path = path, IsActive = true });
+            SelectedRepository = Repositories.Last();
+        }
+        catch (Exception ex)
+        {
+            _configService.Config.Repositories.Remove(repo);
+            ShowError?.Invoke("添加仓库失败: " + ex.Message);
+        }
     }
+
+    [RelayCommand]
+    private void ShowWindow() => ShowWindowRequested?.Invoke();
+
+    [RelayCommand]
+    private void ShowAbout() => ShowAboutRequested?.Invoke();
+
+    [RelayCommand]
+    private async Task SyncNow()
+    {
+        await _configService.SaveAsync();
+        StatusText = "已触发立即同步";
+    }
+
+    [RelayCommand]
+    private void Exit()
+    {
+        IsExiting = true;
+        Environment.Exit(0);
+    }
+
+    public async Task ShowConflictWindowAsync(List<ConflictedFileInfo> conflicts)
+    {
+        ShowConflictDialog?.Invoke(conflicts);
+    }
+
+    // ─── Context Menu Commands ───────────────────────────────────────
+
+    [RelayCommand]
+    private void OpenFile()
+    {
+        // Open selected file with system default app
+        if (SelectedFile == null || SelectedFile.IsParentDirectory) return;
+        if (SelectedFile.IsDirectory)
+        {
+            CurrentPath = SelectedFile.FullPath;
+            _ = RefreshAsync();
+        }
+        else
+        {
+            var psi = new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = SelectedFile.FullPath,
+                UseShellExecute = true
+            };
+            System.Diagnostics.Process.Start(psi);
+        }
+    }
+
+    [RelayCommand]
+    private async Task DeleteFile()
+    {
+        if (SelectedFile == null || SelectedFile.IsParentDirectory) return;
+        try
+        {
+            await _svnService.DeleteAsync(SelectedFile.FullPath);
+            await RefreshAsync();
+            StatusText = "已删除";
+        }
+        catch (Exception ex)
+        {
+            ShowError?.Invoke("删除失败: " + ex.Message);
+        }
+    }
+
+    [RelayCommand]
+    private void RenameFile()
+    {
+        // Raise an event for MainWindow to show an InputDialog
+        ShowRenameDialog?.Invoke(SelectedFile?.FullPath ?? "");
+    }
+
+    public event Action<string>? ShowRenameDialog;
+
+    [RelayCommand]
+    private void ToggleSyncRecordsView()
+    {
+        ShowSyncRecords = !ShowSyncRecords;
+        if (ShowSyncRecords && SelectedRepository != null)
+            LoadSyncRecords();
+    }
+
+    [RelayCommand]
+    private void CloseSyncRecordsView()
+    {
+        ShowSyncRecords = false;
+    }
+
+    private void LoadSyncRecords()
+    {
+        if (SelectedRepository == null) return;
+        SyncRecords.Clear();
+        var records = SyncRecordService.Instance.Records;
+        foreach (var r in records.Where(r => r.RepoName == SelectedRepository.Name))
+            SyncRecords.Add(SyncRecordDisplay.FromRecord(r));
+    }
+
+    [RelayCommand]
+    private void CopyPath()
+    {
+        if (SelectedFile == null) return;
+        // Copy path to clipboard — handled by MainWindow.axaml.cs via event
+        CopyPathRequested?.Invoke(SelectedFile.FullPath);
+        SetTransientStatus("路径已复制");
+    }
+
+    public event Action<string>? CopyPathRequested;
+
+    [RelayCommand]
+    private async Task ManualSync()
+    {
+        if (!CanOperate) return;
+        // Trigger immediate sync on current RepoManager
+        if (_globalManager.ActiveManager != null)
+        {
+            StatusText = "正在同步...";
+            await _globalManager.ActiveManager.SyncNowAsync();
+            StatusText = "同步完成";
+        }
+    }
+
+    [RelayCommand]
+    private void OpenInExplorer()
+    {
+        if (SelectedFile == null) return;
+        var path = SelectedFile.IsDirectory
+            ? SelectedFile.FullPath
+            : Path.GetDirectoryName(SelectedFile.FullPath);
+        var psi = new System.Diagnostics.ProcessStartInfo
+        {
+            FileName = path,
+            UseShellExecute = true
+        };
+        System.Diagnostics.Process.Start(psi);
+    }
+
+    // New file commands — path is derived from CurrentPath
+    [RelayCommand]
+    private async Task NewFolder()
+    {
+        if (!CanOperate) return;
+        ShowNewItemDialog?.Invoke("folder");
+    }
+
+    [RelayCommand]
+    private async Task NewTextFile()
+    {
+        if (!CanOperate) return;
+        ShowNewItemDialog?.Invoke(".txt");
+    }
+
+    [RelayCommand]
+    private async Task NewWordDoc()
+    {
+        if (!CanOperate) return;
+        ShowNewItemDialog?.Invoke(".docx");
+    }
+
+    [RelayCommand]
+    private async Task NewExcelSheet()
+    {
+        if (!CanOperate) return;
+        ShowNewItemDialog?.Invoke(".xlsx");
+    }
+
+    [RelayCommand]
+    private async Task NewPowerPoint()
+    {
+        if (!CanOperate) return;
+        ShowNewItemDialog?.Invoke(".pptx");
+    }
+
+    [RelayCommand]
+    private async Task NewPngImage()
+    {
+        if (!CanOperate) return;
+        ShowNewItemDialog?.Invoke(".png");
+    }
+
+    [RelayCommand]
+    private async Task NewBmpImage()
+    {
+        if (!CanOperate) return;
+        ShowNewItemDialog?.Invoke(".bmp");
+    }
+
+    public event Action<string>? ShowNewItemDialog;
+
+    // ─── Copy/Paste ─────────────────────────────────────────────────
+    private readonly List<string> _copiedPaths = new();
+
+    [RelayCommand]
+    private void Copy()
+    {
+        if (SelectedFile == null) return;
+        _copiedPaths.Clear();
+        _copiedPaths.Add(SelectedFile.FullPath);
+        CanPaste = true;
+        StatusText = "已复制到剪贴板";
+    }
+
+
+    public event Action<List<string>, string>? ShowCopyDialog;
+
+    [RelayCommand]
+    private async Task Paste()
+    {
+        if (!CanOperate || _copiedPaths.Count == 0) return;
+        ShowCopyDialog?.Invoke(_copiedPaths.ToList(), CurrentPath);
+    }
+
+    // ─── Multi-select commands ─────────────────────────────────────
 }

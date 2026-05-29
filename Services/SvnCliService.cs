@@ -47,6 +47,13 @@ public class SvnCliService : IDisposable
         get => _fileTransferTimeoutMs;
         set => _fileTransferTimeoutMs = Math.Clamp(value, 30_000, 600_000);
     }
+
+    private static int _localCommandTimeoutMs = 5_000;
+    public static int LocalCommandTimeoutMs
+    {
+        get => _localCommandTimeoutMs;
+        set => _localCommandTimeoutMs = Math.Clamp(value, 1_000, 60_000);
+    }
     public static event Action? FileTransferTimeoutChanged;
     public static void NotifyFileTransferTimeoutChanged() => FileTransferTimeoutChanged?.Invoke();
 
@@ -94,7 +101,11 @@ public class SvnCliService : IDisposable
             var statuses = new Dictionary<string, FileSvnStatus>();
             var depthArg = depth ? "--depth infinity" : "--depth immediates";
             var result = RunSvn($"status --xml {depthArg}", workingCopyPath);
-            if (result.exitCode != 0) return statuses;
+            if (result.exitCode != 0)
+            {
+                SvnCliLog.Warning($"[SvnCli] GetStatusAsync failed for {workingCopyPath}: {result.error}");
+                return statuses;
+            }
 
             try
             {
@@ -175,7 +186,11 @@ public class SvnCliService : IDisposable
         return await ExecuteRead(token =>
         {
             var result = RunSvn("info --xml", workingCopyPath);
-            if (result.exitCode != 0) return "";
+            if (result.exitCode != 0)
+            {
+                SvnCliLog.Warning($"[SvnCli] GetRepoUrlAsync failed for {workingCopyPath}: {result.error}");
+                return "";
+            }
 
             try
             {
@@ -296,13 +311,17 @@ public class SvnCliService : IDisposable
         return (false, -1);
     }
 
-    public async Task<List<string>> GetConflictedFilesAsync(string workingCopyPath)
+    public async Task<List<ConflictedFileInfo>> GetConflictedFilesAsync(string workingCopyPath)
     {
         return await ExecuteRead(token =>
         {
-            var files = new List<string>();
+            var files = new List<ConflictedFileInfo>();
             var result = RunSvn("status --xml --depth infinity", workingCopyPath);
-            if (result.exitCode != 0) return files;
+            if (result.exitCode != 0)
+            {
+                SvnCliLog.Warning($"[SvnCli] GetConflictedFilesAsync failed for {workingCopyPath}: {result.error}");
+                return files;
+            }
 
             try
             {
@@ -313,11 +332,27 @@ public class SvnCliService : IDisposable
                     if (wcStatus == null) continue;
 
                     var item = wcStatus.Attribute("item")?.Value ?? "";
-                    var treeConflict = wcStatus.Attribute("tree-conflicted")?.Value;
+                    var treeConflictAttr = wcStatus.Attribute("tree-conflicted")?.Value;
                     var path = entry.Attribute("path")?.Value ?? "";
+                    var isTreeConflict = treeConflictAttr == "true";
 
-                    if ((item == "conflicted" || treeConflict == "true") && !string.IsNullOrEmpty(path))
-                        files.Add(path);
+                    if ((item == "conflicted" || isTreeConflict) && !string.IsNullOrEmpty(path))
+                    {
+                        files.Add(new ConflictedFileInfo
+                        {
+                            FilePath = path,
+                            IsTreeConflict = isTreeConflict,
+                            SuggestedResolution = isTreeConflict
+                                ? ConflictResolution.KeepLocal
+                                : ConflictResolution.AcceptServer,
+                            SelectedResolution = isTreeConflict
+                                ? ConflictResolution.KeepLocal
+                                : ConflictResolution.AcceptServer,
+                            TreeConflictDescription = isTreeConflict
+                                ? "树冲突：本地与服务器同时修改，请选择保留本地或接受服务器版本"
+                                : null
+                        });
+                    }
                 }
             }
             catch (Exception ex)
@@ -594,34 +629,56 @@ public class SvnCliService : IDisposable
     // Internal helpers
     // ══════════════════════════════════════════════════════════════════════════
 
+    private const int LocalReadTimeoutMs = 10_000; // 10s for pure local read operations
+
     private async Task<T> ExecuteRead<T>(Func<CancellationToken, T> operation)
     {
         if (!await _readSemaphore.WaitAsync(LockWaitTimeoutMs))
             throw new TimeoutException($"SVN read timed out waiting for a read slot after {LockWaitTimeoutMs / 1000}s.");
         try
         {
-            using var safetyCts = new CancellationTokenSource(SafetyNetTimeoutMs);
+            using var safetyCts = new CancellationTokenSource(LocalReadTimeoutMs);
             using var linked = CancellationTokenSource.CreateLinkedTokenSource(safetyCts.Token);
             return await Task.Run(() => operation(linked.Token), linked.Token);
         }
         catch (OperationCanceledException) {
-            throw new TimeoutException($"SVN read timed out after {SafetyNetTimeoutMs / 1000}s.");
+            throw new TimeoutException($"SVN read timed out after {LocalReadTimeoutMs / 1000}s — command hung (likely network issue).");
         }
         finally { _readSemaphore.Release(); }
     }
 
-    private async Task<T> ExecuteLocalWrite<T>(Func<CancellationToken, T> operation)
+    /// <summary>
+    /// Fast local command executor — 5s hard cap on SVN EXE execution.
+    /// For Add/Delete/Revert/Move/Lock/Resolve which are pure local and sub-second.
+    /// Does NOT use progress watchdog (those commands don't report progress).
+    /// </summary>
+    private async Task<T> ExecuteLocalCommand<T>(Func<CancellationToken, T> operation)
     {
         if (!await _writeSemaphore.WaitAsync(LockWaitTimeoutMs))
-            throw new TimeoutException($"SVN write timed out waiting for write lock after {LockWaitTimeoutMs / 1000}s.");
+            throw new TimeoutException($"SVN write queued for too long (> {LockWaitTimeoutMs / 1000}s waiting for lock).");
         try
         {
-            using var safetyCts = new CancellationTokenSource(LockWaitTimeoutMs);
+            using var safetyCts = new CancellationTokenSource(LocalCommandTimeoutMs);
             using var linked = CancellationTokenSource.CreateLinkedTokenSource(safetyCts.Token);
             return await Task.Run(() => operation(linked.Token), linked.Token);
         }
+        catch (OperationCanceledException)
+        {
+            throw new TimeoutException($"SVN local command timed out after {LocalCommandTimeoutMs / 1000}s — command took too long (likely hung).");
+        }
         finally { _writeSemaphore.Release(); }
     }
+
+    private async Task<T> ExecuteLocalWrite<T>(Func<CancellationToken, T> operation)
+    {
+        // Fallback for callers that still reference ExecuteLocalWrite
+        return await ExecuteLocalCommand(operation);
+    }
+
+    private readonly object _progressLock = new();
+    private CancellationTokenSource? _progressWatchdogCts;
+    private DateTime _lastProgressTime = DateTime.MinValue;
+    private int _activeWatchdogId;
 
     private async Task<T> ExecuteHeavyWrite<T>(
         Func<CancellationToken, T> operation,
@@ -632,7 +689,57 @@ public class SvnCliService : IDisposable
             throw new TimeoutException($"SVN operation timed out waiting for write lock after {LockWaitTimeoutMs / 1000}s.");
         try
         {
-            return await Task.Run(() => operation(default));
+            // Progress watchdog: each FileTransferActivity call resets the deadline.
+            // If no activity for FileTransferTimeoutMs, cancel.
+            var watchdogId = ++_activeWatchdogId;
+            _lastProgressTime = DateTime.Now;
+            using var watchdogCts = new CancellationTokenSource(FileTransferTimeoutMs);
+            _progressWatchdogCts = watchdogCts;
+
+            // Detached timer resets the watchdog CTS on each progress event
+            var progressResetTimer = new System.Timers.Timer(500);
+            progressResetTimer.Elapsed += (s, e) =>
+            {
+                if (_activeWatchdogId != watchdogId) { progressResetTimer.Stop(); return; }
+                if ((DateTime.Now - _lastProgressTime).TotalMilliseconds < FileTransferTimeoutMs) return;
+                lock (_progressLock)
+                {
+                    if (_activeWatchdogId != watchdogId) { progressResetTimer.Stop(); return; }
+                    SvnCliLog.Warning("[SvnCli] No progress for {0}s, cancelling", FileTransferTimeoutMs / 1000);
+                    watchdogCts.Cancel();
+                    progressResetTimer.Stop();
+                }
+            };
+            progressResetTimer.Start();
+
+            // Wire up auto-reset: FileTransferActivity resets deadline
+            Action<string, string>? oldHandler = null;
+            if (FileTransferActivity != null)
+                foreach (var d in FileTransferActivity.GetInvocationList())
+                    oldHandler = (Action<string, string>)d;
+            FileTransferActivity = null;
+            FileTransferActivity += (path, flag) =>
+            {
+                _lastProgressTime = DateTime.Now;
+                oldHandler?.Invoke(path, flag);
+            };
+
+            // Hard cap at SafetyNetTimeoutMs
+            using var hardCapCts = new CancellationTokenSource(SafetyNetTimeoutMs);
+            using var linked = CancellationTokenSource.CreateLinkedTokenSource(hardCapCts.Token, watchdogCts.Token);
+
+            T result;
+            try { result = await Task.Run(() => operation(linked.Token), linked.Token); }
+            finally { progressResetTimer.Stop(); }
+
+            return result;
+        }
+        catch (OperationCanceledException)
+        {
+            var elapsed = (DateTime.Now - _lastProgressTime).TotalSeconds;
+            if (elapsed >= FileTransferTimeoutMs / 1000)
+                throw new TimeoutException($"SVN write timed out (no progress for {FileTransferTimeoutMs / 1000}s).");
+            throw new TimeoutException($"SVN write timed out after {SafetyNetTimeoutMs / 1000}s.");
         }
         catch (Exception ex) when (IsAuthError(ex))
         {
@@ -678,7 +785,8 @@ public class SvnCliService : IDisposable
         string? username = null,
         string? password = null,
         bool clearCache = false,
-        Action<string>? progressCallback = null)
+        Action<string>? progressCallback = null,
+        CancellationToken cancellationToken = default)
     {
         var fullArgs = new StringBuilder();
         if (!string.IsNullOrEmpty(username))
@@ -728,10 +836,11 @@ public class SvnCliService : IDisposable
                 process.StandardInput.Close();
             }
 
-            var timedOut = !process.WaitForExit(300_000);
-            if (timedOut)
+            // Use WaitForExitAsync with cancellation to support token cancellation
+            var completed = process.WaitForExit(300_000);
+            if (!completed)
             {
-                try { process.Kill(); } catch { }
+                try { process.Kill(true); } catch { }
                 return ("", -1, "svn command timed out after 300s");
             }
 

@@ -1,0 +1,50 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:OneFileBox.Views"
+        x:Class="OneFileBox.Views.BatchRenameWindow"
+        Title="批量重命名"
+        Width="480" Height="360"
+        WindowStartupLocation="CenterOwner"
+        
+        CanResize="False"
+        ShowInTaskbar="False">
+
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Base name input -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,12">
+            <TextBlock Text="新文件名（文件按选择顺序编号）：" FontSize="13" Margin="0,0,0,6"/>
+            <TextBox x:Name="BaseNameTextBox" FontSize="13" Padding="4,3" TextChanged="OnTextChanged"/>
+        </StackPanel>
+
+        <!-- Pattern hint -->
+        <TextBlock Grid.Row="1" FontSize="12" Foreground="Gray" Margin="0,0,0,8"
+                   Text="命名格式：输入名称 → &quot;名称 (1).ext&quot;、&quot;名称 (2).ext&quot; ..."/>
+
+        <!-- Preview list -->
+        <ListBox Grid.Row="2" x:Name="PreviewList" FontSize="12" Margin="0,0,0,12">
+            <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:RenamePreviewItem">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="原名：" Foreground="Gray" Margin="0,0,4,0"/>
+                        <TextBlock Text="{Binding OldName}" Margin="0,0,12,0"/>
+                        <TextBlock Text="→" Foreground="Gray" Margin="0,0,4,0"/>
+                        <TextBlock Text="{Binding NewName}" FontWeight="Bold" Foreground="#2196F3"/>
+                    </StackPanel>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+
+        <!-- Buttons -->
+        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="确定" Click="OK_Click" MinWidth="90" Padding="16,6" Margin="0,0,10,0"/>
+            <Button Content="取消" Click="Cancel_Click" MinWidth="90" Padding="16,6"/>
+        </StackPanel>
+    </Grid>
+</Window>

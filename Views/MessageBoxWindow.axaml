@@ -1,0 +1,44 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="OneFileBox.Views.MessageBoxWindow"
+        Title="{Binding BoxTitle}"
+        Width="400" Height="170"
+        WindowStartupLocation="CenterOwner"
+        
+        CanResize="False"
+        ShowInTaskbar="False">
+
+    <Grid Margin="16">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Icon -->
+        <TextBlock x:Name="IconText" Grid.Column="0" Grid.RowSpan="2"
+                   Text="i" FontSize="20" FontWeight="Bold"
+                   VerticalAlignment="Top" Margin="0,2,14,0"
+                   Width="24"/>
+
+        <!-- Title -->
+        <TextBlock x:Name="TitleText" Grid.Column="1" Grid.Row="0"
+                   FontSize="14" FontWeight="SemiBold"
+                   Text="{Binding BoxTitle}" Margin="0,0,0,8"/>
+
+        <!-- Message -->
+        <TextBlock x:Name="MessageText" Grid.Column="1" Grid.Row="1"
+                   Text="{Binding Message}"
+                   TextWrapping="Wrap" FontSize="13"
+                   Foreground="Gray"/>
+
+        <!-- Buttons -->
+        <StackPanel x:Name="ButtonsPanel" Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="2"
+                    Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0">
+        </StackPanel>
+    </Grid>
+</Window>

@@ -1,0 +1,105 @@
+<Window xmlns="https://github.com/avaloniaui"
+       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+       xmlns:models="using:OneFileBox.Models"
+       mc:Ignorable="d" d:DesignWidth="600" d:DesignHeight="420"
+       x:Class="OneFileBox.Views.ConflictWindow"
+       Title="Conflicts Detected"
+       Height="420" Width="600"
+       WindowStartupLocation="CenterOwner"
+       
+       CanResize="False">
+
+  <DockPanel Margin="16">
+    <!-- Header -->
+    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,12">
+      <TextBlock Text="⚠️" FontSize="22" VerticalAlignment="Center" Margin="0,0,8,0"/>
+      <TextBlock Text="Conflicts Detected" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center"/>
+    </StackPanel>
+
+    <!-- OK/Cancel buttons at bottom -->
+    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+      <Button Content="Keep All Local" Click="KeepAllLocal_Click" Padding="12,6" MinWidth="110" Margin="0,0,8,0"/>
+      <Button Content="Accept All Server" Click="AcceptAllServer_Click" Padding="12,6" MinWidth="110" Margin="0,0,8,0"/>
+      <Button Content="Apply" Click="OK_Click" Classes="accent" Padding="16,6" MinWidth="80" Margin="0,0,8,0"/>
+      <Button Content="Cancel" Click="Cancel_Click" Padding="16,6" MinWidth="80"/>
+    </StackPanel>
+
+    <!-- Body: description + scrollable conflict list -->
+    <StackPanel>
+      <TextBlock Text="The following files have conflicting changes. Please choose how to resolve each conflict:"
+                 TextWrapping="Wrap" FontSize="12" Foreground="#666" Margin="0,0,0,12"/>
+
+      <Border BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+              BorderThickness="1" CornerRadius="4" Margin="0,0,0,0">
+        <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="280">
+          <ItemsControl ItemsSource="{Binding ConflictFiles}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="models:ConflictedFileInfo">
+                <Border BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                        BorderThickness="0,0,0,1" Padding="12,10">
+                  <Grid>
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="*"/>
+                      <ColumnDefinition Width="Auto"/>
+                      <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- File info -->
+                    <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                      <TextBlock Text="{Binding FileName}" FontWeight="SemiBold" FontSize="13"/>
+                      <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                        <TextBlock Text="Local:" Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="11"/>
+                        <TextBlock Text="{Binding LocalModifiedTime, StringFormat='{}{0:yyyy-MM-dd HH:mm}'}"
+                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}" FontSize="11" Margin="4,0,16,0"/>
+                        <TextBlock Text="Server:" Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="11"/>
+                        <TextBlock Text="{Binding ServerModifiedTime, StringFormat='{}{0:yyyy-MM-dd HH:mm}'}"
+                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}" FontSize="11" Margin="4,0,0,0"/>
+                      </StackPanel>
+                    </StackPanel>
+
+                    <!-- Suggestion badge -->
+                    <Border Grid.Column="1" CornerRadius="3" Padding="8,2"
+                            VerticalAlignment="Center" Margin="8,0,0,0">
+                      <Border.Style>
+                        <Style Selector="Border">
+                          <Setter Property="Background" Value="#E6F4FF"/>
+                        </Style>
+                        <Style Selector="Border[Tag=LocalNewer]">
+                          <Setter Property="Background" Value="#FFF3CD"/>
+                        </Style>
+                      </Border.Style>
+                      <TextBlock FontSize="11">
+                        <TextBlock.Style>
+                          <Style Selector="TextBlock">
+                            <Setter Property="Foreground" Value="#0066CC"/>
+                            <Setter Property="Text" Value="Accept Server (default)"/>
+                          </Style>
+                          <Style Selector="TextBlock[IsEnabled=False]">
+                            <Setter Property="Text" Value="Keep Local (tree conflict only)"/>
+                          </Style>
+                        </TextBlock.Style>
+                      </TextBlock>
+                    </Border>
+
+                    <!-- Resolution selector -->
+                    <Grid Grid.Column="2" VerticalAlignment="Center">
+                      <ComboBox SelectedValue="{Binding SelectedResolution}"
+                                SelectedValuePath="Tag"
+                                Width="150">
+                        <ComboBoxItem Content="Keep Local" Tag="{x:Static models:ConflictResolution.KeepLocal}"/>
+                        <ComboBoxItem Content="Accept Server" Tag="{x:Static models:ConflictResolution.AcceptServer}"/>
+                        <ComboBoxItem Content="Keep Both" Tag="{x:Static models:ConflictResolution.KeepBoth}"/>
+                      </ComboBox>
+                    </Grid>
+                  </Grid>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </ScrollViewer>
+      </Border>
+    </StackPanel>
+  </DockPanel>
+</Window>
